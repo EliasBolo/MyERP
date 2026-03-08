@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 213 31% 91%;
+
+    --card: 222 47% 14%;
+    --card-foreground: 213 31% 91%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 213 31% 91%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 5%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 213 31% 91%;
+
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 16% 57%;
+
+    --accent: 217 32% 20%;
+    --accent-foreground: 213 31% 91%;
+
+    --destructive: 0 63% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 22%;
+    --input: 217 32% 22%;
+    --ring: 217 91% 60%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 142 71% 5%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 92% 5%;
+
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 72% 5%;
+
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+      sans-serif;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer components {
+  /* Stats card gradient borders */
+  .stat-card {
+    @apply relative overflow-hidden rounded-xl border border-border bg-card p-6 transition-all hover:border-primary/30;
+  }
+
+  .stat-card::before {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity;
+    background: radial-gradient(
+      circle at top right,
+      hsl(var(--primary) / 0.1),
+      transparent 60%
+    );
+  }
+
+  .stat-card:hover::before {
+    @apply opacity-100;
+  }
+
+  /* Table styles */
+  .data-table {
+    @apply w-full text-sm;
+  }
+
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground;
+  }
+
+  .data-table td {
+    @apply px-4 py-3;
+  }
+
+  .data-table tr {
+    @apply border-b border-border transition-colors;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-muted/50;
+  }
+
+  /* Sidebar nav item */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-foreground;
+  }
+
+  .nav-item.active {
+    @apply bg-primary/10 text-primary;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply bg-green-500/10 text-green-400;
+  }
+
+  .badge-warning {
+    @apply bg-yellow-500/10 text-yellow-400;
+  }
+
+  .badge-danger {
+    @apply bg-red-500/10 text-red-400;
+  }
+
+  .badge-info {
+    @apply bg-blue-500/10 text-blue-400;
+  }
+
+  .badge-neutral {
+    @apply bg-gray-500/10 text-gray-400;
+  }
+
+  /* Page header */
+  .page-header {
+    @apply mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-muted-foreground;
+  }
+}
+
+/* Chart tooltip dark theme */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: hsl(222 47% 14%) !important;
+  border: 1px solid hsl(217 32% 22%) !important;
+  border-radius: 8px !important;
+  color: hsl(213 31% 91%) !important;
+}
+
+/* Input autofill dark override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 30px hsl(222 47% 18%) inset !important;
+  -webkit-text-fill-color: hsl(213 31% 91%) !important;
+  caret-color: hsl(213 31% 91%);
+}
+
+/* Animation classes */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

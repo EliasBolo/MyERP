@@ -1,0 +1,267 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+model Business {
+  id          String   @id @default(cuid())
+  name        String
+  vatNumber   String?  @unique
+  address     String?
+  phone       String?
+  email       String?
+  logo        String?
+  currency    String   @default("EUR")
+  locale      String   @default("el")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  clients     Client[]
+  products    Product[]
+  categories  Category[]
+  warehouses  Warehouse[]
+  costs       Cost[]
+  invoices    Invoice[]
+  transactions Transaction[]
+  auditLogs   AuditLog[]
+}
+
+model User {
+  id               String    @id @default(cuid())
+  email            String    @unique
+  password         String
+  name             String
+  role             String    @default("user") // master_admin | business_admin | user
+  businessId       String?
+  isActive         Boolean   @default(true)
+  twoFactorEnabled Boolean   @default(false)
+  twoFactorSecret  String?
+  lastLogin        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  business    Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  sessions    Session[]
+  auditLogs   AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── INVENTORY ────────────────────────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  businessId  String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business  Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  products  Product[]
+}
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  description String?
+  businessId  String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+}
+
+model Product {
+  id               String    @id @default(cuid())
+  sku              String
+  name             String
+  description      String?
+  categoryId       String?
+  businessId       String
+  unit             String    @default("τεμ") // τεμάχιο, kg, lt, etc.
+  buyPrice         Float     @default(0)
+  sellPrice        Float     @default(0)
+  vatRate          Float     @default(24) // Greek standard VAT
+  currentStock     Float     @default(0)
+  minStock         Float     @default(0)
+  maxStock         Float?
+  barcode          String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  business       Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  stockMovements StockMovement[]
+  invoiceItems   InvoiceItem[]
+
+  @@unique([sku, businessId])
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  warehouseId String?
+  type        String   // IN | OUT | ADJUSTMENT | TRANSFER
+  quantity    Float
+  unitPrice   Float    @default(0)
+  reference   String?  // invoice number, PO number, etc.
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse Warehouse? @relation(fields: [warehouseId], references: [id])
+}
+
+// ─── CLIENTS ──────────────────────────────────────────────────────────────────
+
+model Client {
+  id          String    @id @default(cuid())
+  code        String
+  name        String
+  vatNumber   String?
+  taxOffice   String?
+  address     String?
+  city        String?
+  postalCode  String?
+  country     String    @default("GR")
+  phone       String?
+  mobile      String?
+  email       String?
+  contactName String?
+  notes       String?
+  type        String    @default("customer") // customer | supplier | both
+  creditLimit Float?
+  businessId  String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@unique([code, businessId])
+}
+
+// ─── FINANCIAL ────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id           String        @id @default(cuid())
+  number       String
+  type         String        // SALE | PURCHASE | CREDIT_NOTE | DEBIT_NOTE
+  clientId     String
+  businessId   String
+  issueDate    DateTime      @default(now())
+  dueDate      DateTime?
+  status       String        @default("draft") // draft | sent | paid | overdue | cancelled
+  subtotal     Float         @default(0)
+  vatAmount    Float         @default(0)
+  total        Float         @default(0)
+  paidAmount   Float         @default(0)
+  notes        String?
+  paymentTerms String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client   Client       @relation(fields: [clientId], references: [id])
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@unique([number, businessId])
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  productId   String?
+  description String
+  quantity    Float
+  unitPrice   Float
+  vatRate     Float   @default(24)
+  vatAmount   Float   @default(0)
+  total       Float
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  amount    Float
+  method    String   // cash | bank | card | check
+  reference String?
+  paidAt    DateTime @default(now())
+  notes     String?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  businessId  String
+  type        String   // income | expense
+  category    String
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  reference   String?
+  createdAt   DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Cost {
+  id          String   @id @default(cuid())
+  businessId  String
+  category    String   // payroll | rent | utilities | marketing | operations | other
+  description String
+  amount      Float
+  date        DateTime @default(now())
+  recurrence  String?  // once | monthly | quarterly | yearly
+  vendor      String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+// ─── AUDIT ────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  businessId String?
+  action     String
+  entity     String
+  entityId   String?
+  details    String?  // JSON string
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id])
+  business Business? @relation(fields: [businessId], references: [id])
+}
