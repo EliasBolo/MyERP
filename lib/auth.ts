@@ -17,6 +17,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.businessId = (user as any).businessId;
         token.twoFactorEnabled = (user as any).twoFactorEnabled;
         token.twoFactorVerified = (user as any).twoFactorVerified ?? false;
+        token.subscriptionStatus = (user as any).subscriptionStatus;
+        token.subscriptionTier = (user as any).subscriptionTier;
       }
       return token;
     },
@@ -27,6 +29,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as any).businessId = token.businessId;
         (session.user as any).twoFactorEnabled = token.twoFactorEnabled;
         (session.user as any).twoFactorVerified = token.twoFactorVerified;
+        (session.user as any).subscriptionStatus = token.subscriptionStatus;
+        (session.user as any).subscriptionTier = token.subscriptionTier;
       }
       return session;
     },
@@ -96,6 +100,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           businessId: user.businessId,
           twoFactorEnabled: user.twoFactorEnabled,
           twoFactorVerified: !user.twoFactorEnabled, // verified if 2FA not enabled
+          subscriptionStatus: user.business?.subscriptionStatus ?? 'active',
+          subscriptionTier: user.business?.subscriptionTier ?? 'standard',
         };
       },
     }),

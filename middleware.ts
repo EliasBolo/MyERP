@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server';
 
 const { auth } = NextAuth(authConfig);
 
-const publicRoutes = ['/login', '/api/auth', '/verify-2fa', '/setup-2fa'];
+const publicRoutes = ['/login', '/api/auth', '/verify-2fa', '/setup-2fa', '/suspended'];
 
 export default auth(function middleware(req: NextRequest & { auth: any }) {
   const { pathname } = req.nextUrl;
@@ -34,13 +34,31 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
     return NextResponse.redirect(new URL('/verify-2fa', req.url));
   }
 
+  // Subscription gate: non-master_admins blocked if license is inactive/expired
+  if (
+    user.role !== 'master_admin' &&
+    (user.subscriptionStatus === 'inactive' || user.subscriptionStatus === 'expired') &&
+    !pathname.startsWith('/suspended') &&
+    !pathname.startsWith('/api/')
+  ) {
+    return NextResponse.redirect(new URL('/suspended', req.url));
+  }
+
+  // master_admin has no business — redirect them away from business pages to /admin
+  if (user.role === 'master_admin' && pathname === '/dashboard') {
+    return NextResponse.redirect(new URL('/admin', req.url));
+  }
+
   // Role-based access control
   const isAdminOnly = pathname.startsWith('/users') || pathname.startsWith('/api/users');
   if (isAdminOnly && user.role === 'user') {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
-  const isMasterAdminOnly = pathname.startsWith('/api/businesses') || pathname.startsWith('/businesses');
+  // Master-admin-only routes
+  const isMasterAdminOnly =
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/api/admin');
   if (isMasterAdminOnly && user.role !== 'master_admin') {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }
