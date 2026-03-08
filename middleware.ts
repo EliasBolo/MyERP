@@ -1,10 +1,14 @@
-import { auth } from '@/lib/auth';
+// Use lightweight auth config (no speakeasy) for Edge Runtime compatibility
+import NextAuth from 'next-auth';
+import { authConfig } from '@/lib/auth.config';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicRoutes = ['/login', '/api/auth'];
+const { auth } = NextAuth(authConfig);
 
-export default auth(async function middleware(req: NextRequest & { auth: any }) {
+const publicRoutes = ['/login', '/api/auth', '/verify-2fa', '/setup-2fa'];
+
+export default auth(function middleware(req: NextRequest & { auth: any }) {
   const { pathname } = req.nextUrl;
 
   // Allow public routes
