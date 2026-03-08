@@ -20,12 +20,12 @@ export async function GET() {
 
   const users = await db.user.findMany({
     where,
-    include: { business: { select: { id: true, name: true } } },
     orderBy: { name: 'asc' },
     select: {
       id: true, name: true, email: true, role: true,
       isActive: true, twoFactorEnabled: true, lastLogin: true,
-      businessId: true, business: true, createdAt: true,
+      businessId: true, createdAt: true,
+      business: { select: { id: true, name: true } },
     },
   });
 
