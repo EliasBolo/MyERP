@@ -21,6 +21,9 @@ model Business {
   currency           String    @default("EUR")
   locale             String    @default("el")
   isActive           Boolean   @default(true)
+  // Customer / contact info (set by master_admin)
+  contactPerson      String?
+  notes              String?
   // SaaS subscription fields
   subscriptionTier   String    @default("standard")  // standard | production
   subscriptionStatus String    @default("active")    // active | inactive | trial | expired
@@ -38,6 +41,39 @@ model Business {
   transactions        Transaction[]
   auditLogs           AuditLog[]
   subscriptionPhases  SubscriptionPhase[]
+  licenseRenewals     LicenseRenewal[]
+  customerPayments    CustomerPayment[]
+}
+
+model LicenseRenewal {
+  id         String   @id @default(cuid())
+  businessId String
+  renewedAt  DateTime @default(now())
+  tierFrom   String?
+  tierTo     String
+  statusFrom String?
+  statusTo   String
+  amountPaid Float?
+  currency   String   @default("EUR")
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model CustomerPayment {
+  id         String   @id @default(cuid())
+  businessId String
+  amount     Float
+  currency   String   @default("EUR")
+  method     String   @default("bank") // cash | bank | card | other
+  status     String   @default("paid") // paid | pending | failed
+  reference  String?
+  notes      String?
+  paidAt     DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model SubscriptionPhase {
