@@ -46,7 +46,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (isLoggedIn) {
         const user = auth.user as any;
-        // If 2FA is enabled but not yet verified in this session
+        // If 2FA is enabled but not yet verified in this session → verify-2fa
         if (
           user.twoFactorEnabled &&
           !user.twoFactorVerified &&
@@ -55,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ) {
           return Response.redirect(new URL('/verify-2fa', request.nextUrl));
         }
+        // Mandatory setup-2fa / verify-2fa redirects handled in middleware
       }
 
       return true;

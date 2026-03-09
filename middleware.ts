@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server';
 
 const { auth } = NextAuth(authConfig);
 
-const publicRoutes = ['/login', '/api/auth', '/verify-2fa', '/setup-2fa', '/suspended'];
+const publicRoutes = ['/login', '/api/auth', '/suspended'];
 
 // Security: prevent search engine indexing
 const NO_INDEX_HEADERS = { 'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet' } as const;
@@ -39,7 +39,7 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
     return withNoIndex(NextResponse.redirect(new URL('/verify-2fa', req.url)));
   }
 
-  // 2FA: if not enabled → setup-2fa (first-time or mandatory setup)
+  // 2FA: must be enabled — redirect to setup-2fa (no dashboard access without it)
   if (
     !user.twoFactorEnabled &&
     !pathname.startsWith('/setup-2fa') &&
