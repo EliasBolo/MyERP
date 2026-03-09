@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { SessionProvider } from 'next-auth/react';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
 import { cn } from '@/lib/utils';
@@ -71,9 +70,5 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <DashboardContent>{children}</DashboardContent>
-    </SessionProvider>
-  );
+  return <DashboardContent>{children}</DashboardContent>;
 }

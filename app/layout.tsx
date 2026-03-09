@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import SessionProviderWrapper from '@/components/providers/SessionProviderWrapper';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -32,9 +33,11 @@ export default async function RootLayout({
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>
       <body>
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          {children}
-        </NextIntlClientProvider>
+        <SessionProviderWrapper>
+          <NextIntlClientProvider messages={messages} locale={locale}>
+            {children}
+          </NextIntlClientProvider>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
