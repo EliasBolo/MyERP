@@ -14,8 +14,16 @@ import { cn } from '@/lib/utils';
 
 // ── Label maps ──────────────────────────────────────────────────────────────
 
-const TIER_LABELS: Record<string, string> = { standard: 'Standard', production: 'Production' };
-const TIER_COLORS: Record<string, string> = { standard: 'badge-info', production: 'badge-warning' };
+const TIER_LABELS: Record<string, string> = {
+  standard: 'Standard',
+  production: 'Production',
+  production_exports: 'Production - Exports',
+};
+const TIER_COLORS: Record<string, string> = {
+  standard: 'badge-info',
+  production: 'badge-warning',
+  production_exports: 'badge-success',
+};
 
 const STATUS_LABELS: Record<string, string> = {
   active: 'Ενεργό', inactive: 'Ανενεργό', trial: 'Δοκιμαστικό', expired: 'Ληγμένο',
@@ -663,6 +671,7 @@ export default function AdminPage() {
                                         onChange={e => setDetailForm((p: any) => ({ ...p, subscriptionTier: e.target.value }))}>
                                         <option value="standard">Standard</option>
                                         <option value="production">Production</option>
+                                        <option value="production_exports">Production - Exports</option>
                                       </select>
                                     </div>
                                     <div>
@@ -952,6 +961,7 @@ export default function AdminPage() {
                                       onChange={e => setRenewalForm(p => ({ ...p, tierTo: e.target.value }))}>
                                       <option value="standard">Standard</option>
                                       <option value="production">Production</option>
+                                      <option value="production_exports">Production - Exports</option>
                                     </select>
                                   </div>
                                   <div>
@@ -1428,6 +1438,7 @@ export default function AdminPage() {
                           onChange={e => setBizForm(p => ({ ...p, subscriptionTier: e.target.value }))}>
                           <option value="standard">Standard</option>
                           <option value="production">Production</option>
+                          <option value="production_exports">Production - Exports</option>
                         </select>
                       </div>
                       <div>

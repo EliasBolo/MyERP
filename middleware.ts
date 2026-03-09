@@ -49,6 +49,16 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
     return NextResponse.redirect(new URL('/admin', req.url));
   }
 
+  // Παραγωγή — only Production / Production - Exports tiers
+  const productionTiers = ['production', 'production_exports'];
+  if (
+    pathname.startsWith('/production') &&
+    user.role !== 'master_admin' &&
+    (!user.subscriptionTier || !productionTiers.includes(user.subscriptionTier))
+  ) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
   // Role-based access control
   const isAdminOnly = pathname.startsWith('/users') || pathname.startsWith('/api/users');
   if (isAdminOnly && user.role === 'user') {

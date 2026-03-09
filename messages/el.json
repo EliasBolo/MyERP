@@ -72,7 +72,9 @@
     "reports": "Αναφορές",
     "users": "Χρήστες",
     "settings": "Ρυθμίσεις",
-    "invoices": "Τιμολόγια"
+    "invoices": "Τιμολόγια",
+    "production": "Παραγωγή",
+    "productionLocked": "Απαιτείται αναβάθμιση σε Production ή Production - Exports"
   },
   "dashboard": {
     "title": "Πίνακας Ελέγχου",
@@ -304,5 +306,10 @@
     "markAsPaid": "Πληρώθηκε",
     "print": "Εκτύπωση",
     "paymentTerms": "Όροι Πληρωμής"
+  },
+  "production": {
+    "title": "Παραγωγή",
+    "comingSoon": "Έρχεται σύντομα.",
+    "placeholder": "Το περιεχόμενο της Παραγωγής θα ενημερωθεί σύντομα."
   }
 }

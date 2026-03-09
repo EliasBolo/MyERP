@@ -32,7 +32,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:w-60 lg:flex-col lg:flex-shrink-0">
-        <Sidebar userRole={user?.role} businessName={user?.businessName} />
+        <Sidebar userRole={user?.role} businessName={user?.businessName} subscriptionTier={user?.subscriptionTier} />
       </div>
 
       {/* Mobile sidebar overlay */}
@@ -47,6 +47,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               onClose={() => setSidebarOpen(false)}
               userRole={user?.role}
               businessName={user?.businessName}
+              subscriptionTier={user?.subscriptionTier}
             />
           </div>
         </div>

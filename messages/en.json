@@ -72,7 +72,9 @@
     "reports": "Reports",
     "users": "Users",
     "settings": "Settings",
-    "invoices": "Invoices"
+    "invoices": "Invoices",
+    "production": "Production",
+    "productionLocked": "Upgrade to Production or Production - Exports required"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -304,5 +306,10 @@
     "markAsPaid": "Mark as Paid",
     "print": "Print",
     "paymentTerms": "Payment Terms"
+  },
+  "production": {
+    "title": "Production",
+    "comingSoon": "Coming soon.",
+    "placeholder": "Production content will be updated soon."
   }
 }

@@ -17,6 +17,8 @@ import {
   TrendingDown,
   Shield,
   X,
+  Factory,
+  Lock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,11 +26,16 @@ interface SidebarProps {
   onClose?: () => void;
   userRole?: string;
   businessName?: string;
+  subscriptionTier?: string;
 }
 
-export default function Sidebar({ onClose, userRole, businessName }: SidebarProps) {
+const PRODUCTION_TIERS = ['production', 'production_exports'];
+
+export default function Sidebar({ onClose, userRole, businessName, subscriptionTier }: SidebarProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
+
+  const productionUnlocked = subscriptionTier && PRODUCTION_TIERS.includes(subscriptionTier);
 
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -145,6 +152,29 @@ export default function Sidebar({ onClose, userRole, businessName }: SidebarProp
                 </Link>
               );
             })}
+
+            {/* Παραγωγή — unlocked for Production / Production - Exports tiers */}
+            {productionUnlocked ? (
+              <Link
+                href="/production"
+                onClick={onClose}
+                className={cn('nav-item', (pathname === '/production' || pathname.startsWith('/production/')) && 'active')}
+              >
+                <Factory className="h-4 w-4 flex-shrink-0" />
+                <span>{t('production')}</span>
+                {(pathname === '/production' || pathname.startsWith('/production/')) && (
+                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </Link>
+            ) : (
+              <div
+                className="nav-item opacity-60 cursor-not-allowed"
+                title={t('productionLocked')}
+              >
+                <Lock className="h-4 w-4 flex-shrink-0" />
+                <span>{t('production')}</span>
+              </div>
+            )}
 
             {adminItems.length > 0 && (
               <>
