@@ -40,6 +40,7 @@ model Business {
   costs               Cost[]
   invoices            Invoice[]
   lotNumbers          LotNumber[]
+  productionOrders    ProductionOrder[]
   transactions        Transaction[]
   auditLogs           AuditLog[]
   subscriptionPhases  SubscriptionPhase[]
@@ -173,6 +174,8 @@ model Product {
   category       Category?       @relation(fields: [categoryId], references: [id])
   stockMovements StockMovement[]
   invoiceItems   InvoiceItem[]
+  outputProductionOrders ProductionOrder[]   @relation("OrderOutputProduct")
+  productionPhaseItems   ProductionPhaseItem[]
 
   @@unique([sku, businessId])
 }
@@ -263,6 +266,66 @@ model LotNumber {
   invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@unique([lotNumber, businessId])
+}
+
+model ProductionOrder {
+  id             String   @id @default(cuid())
+  code           String
+  title          String
+  businessId     String
+  outputProductId String
+  outputQuantity Float    @default(1)
+  status         String   @default("draft") // draft | in_progress | completed | cancelled
+  startDate      DateTime @default(now())
+  completedAt    DateTime?
+  notes          String?
+  materialsTotal Float    @default(0)
+  laborTotal     Float    @default(0)
+  overheadTotal  Float    @default(0)
+  grandTotal     Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  business      Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  outputProduct Product            @relation("OrderOutputProduct", fields: [outputProductId], references: [id])
+  phases        ProductionPhase[]
+
+  @@unique([code, businessId])
+}
+
+model ProductionPhase {
+  id          String   @id @default(cuid())
+  orderId     String
+  name        String
+  sequence    Int
+  status      String   @default("pending") // pending | in_progress | completed
+  startedAt   DateTime?
+  completedAt DateTime?
+  laborCost   Float    @default(0)
+  overheadCost Float   @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  order ProductionOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items ProductionPhaseItem[]
+
+  @@unique([orderId, sequence])
+}
+
+model ProductionPhaseItem {
+  id               String   @id @default(cuid())
+  phaseId          String
+  productId        String
+  plannedQty       Float
+  actualQty        Float?
+  unitCostSnapshot Float    @default(0)
+  totalCost        Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  phase   ProductionPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model InvoiceItem {
