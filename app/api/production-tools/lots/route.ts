@@ -12,8 +12,14 @@ export async function GET() {
     where: { businessId },
     include: {
       invoice: {
-        select: { id: true, number: true, type: true, issueDate: true, total: true },
-        include: { client: { select: { id: true, name: true, code: true } } },
+        select: {
+          id: true,
+          number: true,
+          type: true,
+          issueDate: true,
+          total: true,
+          client: { select: { id: true, name: true, code: true } },
+        },
       },
     },
     orderBy: { createdAt: 'desc' },
@@ -65,8 +71,14 @@ export async function POST(req: NextRequest) {
       data: { lotNumber: lotNumberValue, invoiceId, businessId },
       include: {
         invoice: {
-          select: { id: true, number: true, type: true, issueDate: true, total: true },
-          include: { client: { select: { id: true, name: true, code: true } } },
+          select: {
+            id: true,
+            number: true,
+            type: true,
+            issueDate: true,
+            total: true,
+            client: { select: { id: true, name: true, code: true } },
+          },
         },
       },
     });
