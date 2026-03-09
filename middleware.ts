@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server';
 
 const { auth } = NextAuth(authConfig);
 
-const publicRoutes = ['/login', '/api/auth', '/verify-2fa', '/setup-2fa', '/suspended'];
+const publicRoutes = ['/login', '/api/auth', '/api/debug-db', '/verify-2fa', '/setup-2fa', '/suspended'];
 
 export default auth(function middleware(req: NextRequest & { auth: any }) {
   const { pathname } = req.nextUrl;
