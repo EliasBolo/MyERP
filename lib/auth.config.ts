@@ -11,8 +11,6 @@ export const authConfig: NextAuthConfig = {
         token.id = user.id;
         token.role = (user as any).role;
         token.businessId = (user as any).businessId;
-        token.twoFactorEnabled = (user as any).twoFactorEnabled;
-        token.twoFactorVerified = (user as any).twoFactorVerified ?? false;
         token.subscriptionStatus = (user as any).subscriptionStatus;
         token.subscriptionTier = (user as any).subscriptionTier;
       }
@@ -23,8 +21,6 @@ export const authConfig: NextAuthConfig = {
         session.user.id = token.id as string;
         (session.user as any).role = token.role;
         (session.user as any).businessId = token.businessId;
-        (session.user as any).twoFactorEnabled = token.twoFactorEnabled;
-        (session.user as any).twoFactorVerified = token.twoFactorVerified;
         (session.user as any).subscriptionStatus = token.subscriptionStatus;
         (session.user as any).subscriptionTier = token.subscriptionTier;
       }

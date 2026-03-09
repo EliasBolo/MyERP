@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Building2, Lock, Mail, Eye, EyeOff, ShieldCheck, HelpCircle } from 'lucide-react';
 import SupportContactModal from '@/components/auth/SupportContactModal';
@@ -10,7 +10,6 @@ import SupportContactModal from '@/components/auth/SupportContactModal';
 export default function LoginPage() {
   const t = useTranslations();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +41,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Check if 2FA needed - middleware will handle redirect
     router.push('/dashboard');
   }
 
@@ -66,7 +64,7 @@ export default function LoginPage() {
               { icon: '📦', text: 'Διαχείριση Αποθήκης & Αποθεμάτων' },
               { icon: '👥', text: 'Διαχείριση Πελατών & Προμηθευτών' },
               { icon: '📊', text: 'Οικονομικά Αναλυτικά & Αναφορές' },
-              { icon: '🔒', text: 'Ασφαλής Πρόσβαση με 2FA' },
+              { icon: '🔒', text: 'Ασφαλής Πρόσβαση' },
             ].map((item) => (
               <div key={item.text} className="flex items-center gap-3 text-blue-100">
                 <span className="text-xl">{item.icon}</span>
@@ -92,12 +90,6 @@ export default function LoginPage() {
             <h2 className="text-2xl font-bold text-foreground">{t('auth.loginTitle')}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
           </div>
-
-          {searchParams.get('reset2fa') === '1' && (
-            <div className="mb-5 rounded-lg bg-green-500/10 border border-green-500/20 px-4 py-3 text-sm text-green-400">
-              Η 2FA επαναφέρθηκε. Συνδεθείτε ξανά και θα σας ζητηθεί να ρυθμίσετε τη νέα 2FA.
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-5 relative">
             {error && (

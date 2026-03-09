@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const body = await req.json();
-  const { isActive, password, name, reset2fa } = body;
+  const { isActive, password, name } = body;
 
   // Safety: never allow modifying a master_admin via this endpoint
   const target = await db.user.findUnique({ where: { id: params.id } });
@@ -26,10 +26,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const updateData: Record<string, any> = {};
   if (typeof isActive === 'boolean') updateData.isActive = isActive;
   if (name?.trim()) updateData.name = name.trim();
-  if (reset2fa === true) {
-    updateData.twoFactorEnabled = false;
-    updateData.twoFactorSecret = null;
-  }
   if (password) {
     if (password.length < 8) {
       return NextResponse.json(

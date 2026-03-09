@@ -28,26 +28,6 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
 
   const user = session.user as any;
 
-  // 2FA: if enabled but not verified → verify-2fa
-  if (
-    user.twoFactorEnabled &&
-    !user.twoFactorVerified &&
-    !pathname.startsWith('/verify-2fa') &&
-    !pathname.startsWith('/setup-2fa') &&
-    !pathname.startsWith('/api/auth')
-  ) {
-    return withNoIndex(NextResponse.redirect(new URL('/verify-2fa', req.url)));
-  }
-
-  // 2FA: must be enabled — redirect to setup-2fa (no dashboard access without it)
-  if (
-    !user.twoFactorEnabled &&
-    !pathname.startsWith('/setup-2fa') &&
-    !pathname.startsWith('/api/auth')
-  ) {
-    return withNoIndex(NextResponse.redirect(new URL('/setup-2fa', req.url)));
-  }
-
   // Subscription gate: non-master_admins blocked if license is inactive/expired
   if (
     user.role !== 'master_admin' &&

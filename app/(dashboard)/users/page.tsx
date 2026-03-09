@@ -85,7 +85,6 @@ export default function UsersPage() {
                   <th>Χρήστης</th>
                   <th>Ρόλος</th>
                   <th className="hidden md:table-cell">Επιχείρηση</th>
-                  <th className="hidden sm:table-cell">2FA</th>
                   <th className="hidden lg:table-cell">Τελ. Σύνδεση</th>
                   <th>Κατάσταση</th>
                   <th className="text-right">Ενέργειες</th>
@@ -94,7 +93,7 @@ export default function UsersPage() {
               <tbody>
                 {users.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                    <td colSpan={6} className="text-center py-12 text-muted-foreground">
                       <Users className="h-8 w-8 mx-auto mb-2 opacity-40" />
                       <p>Δεν υπάρχουν χρήστες</p>
                     </td>
@@ -124,13 +123,6 @@ export default function UsersPage() {
                         </td>
                         <td className="hidden md:table-cell text-sm text-muted-foreground">
                           {user.business?.name ?? '—'}
-                        </td>
-                        <td className="hidden sm:table-cell">
-                          {user.twoFactorEnabled ? (
-                            <span className="badge badge-success">Ενεργό</span>
-                          ) : (
-                            <span className="badge badge-neutral">Ανενεργό</span>
-                          )}
                         </td>
                         <td className="hidden lg:table-cell text-xs text-muted-foreground">
                           {user.lastLogin ? formatRelativeTime(user.lastLogin) : 'Ποτέ'}
