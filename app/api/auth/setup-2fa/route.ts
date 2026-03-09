@@ -3,24 +3,38 @@ import { auth, generateTOTPSecret, verifyTOTP } from '@/lib/auth';
 import { db } from '@/lib/db';
 import QRCode from 'qrcode';
 
-// GET: Generate secret and QR code
+// GET: Generate secret and QR code (reuse existing if setup in progress to avoid overwriting)
 export async function GET() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const secret = generateTOTPSecret(session.user.email as string);
-
-    // Store temp secret in DB
-    await db.user.update({
-      where: { id: session.user.id as string },
-      data: { twoFactorSecret: secret.base32 },
+    const userId = session.user.id as string;
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { twoFactorSecret: true, twoFactorEnabled: true },
     });
 
-    const qrCode = await QRCode.toDataURL(secret.otpauth_url!);
+    let secretBase32: string;
+    let otpauthUrl: string;
+
+    if (user?.twoFactorSecret && !user.twoFactorEnabled) {
+      secretBase32 = user.twoFactorSecret;
+      otpauthUrl = `otpauth://totp/MyERP:${encodeURIComponent(session.user.email as string)}?secret=${secretBase32}&issuer=MyERP`;
+    } else {
+      const secret = generateTOTPSecret(session.user.email as string);
+      secretBase32 = secret.base32;
+      otpauthUrl = secret.otpauth_url!;
+      await db.user.update({
+        where: { id: userId },
+        data: { twoFactorSecret: secretBase32 },
+      });
+    }
+
+    const qrCode = await QRCode.toDataURL(otpauthUrl);
 
     return NextResponse.json({
-      secret: secret.base32,
+      secret: secretBase32,
       qrCode,
     });
   } catch (error: any) {

@@ -1,12 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ShieldCheck, KeyRound } from 'lucide-react';
 
 export default function Verify2FAPage() {
-  const router = useRouter();
   const { data: session, update } = useSession();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,7 +34,7 @@ export default function Verify2FAPage() {
         return;
       }
       await update({ twoFactorEnabled: false, twoFactorVerified: true });
-      router.push('/setup-2fa');
+      window.location.href = '/setup-2fa';
     } catch {
       setResetError('Error');
       setResetLoading(false);
@@ -63,9 +61,8 @@ export default function Verify2FAPage() {
         return;
       }
 
-      // Update session to mark 2FA as verified
       await update({ twoFactorVerified: true });
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch {
       setError('Σφάλμα επαλήθευσης');
       setLoading(false);

@@ -10,7 +10,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/login',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === 'update' && session) {
+        return { ...token, ...session };
+      }
       if (user) {
         token.id = user.id;
         token.role = (user as any).role;
@@ -113,8 +116,8 @@ export function verifyTOTP(secret: string, token: string): boolean {
   return speakeasy.totp.verify({
     secret,
     encoding: 'base32',
-    token,
-    window: 2,
+    token: String(token || '').trim(),
+    window: 4,
   });
 }
 

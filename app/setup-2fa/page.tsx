@@ -1,13 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import { ShieldCheck, Copy, Check } from 'lucide-react';
 
 export default function Setup2FAPage() {
-  const router = useRouter();
   const { update } = useSession();
   const [qrCode, setQrCode] = useState('');
   const [secret, setSecret] = useState('');
@@ -47,7 +45,7 @@ export default function Setup2FAPage() {
       }
 
       await update({ twoFactorEnabled: true, twoFactorVerified: true });
-      router.push('/dashboard');
+      window.location.href = '/dashboard';
     } catch {
       setError('Σφάλμα ρύθμισης');
       setLoading(false);
