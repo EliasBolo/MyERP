@@ -92,8 +92,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       columns: [{ header: 'entity', key: 'entity' }, { header: 'name', key: 'name' }],
       rows: [
-        ...clients.map((c) => ({ entity: 'client', name: c.name, ...c })),
-        ...products.map((p) => ({ entity: 'product', name: p.name, ...p })),
+        ...clients.map((c) => ({ ...c, entity: 'client' })),
+        ...products.map((p) => ({ ...p, entity: 'product' })),
       ],
     });
   } catch (error: any) {
