@@ -74,7 +74,9 @@
     "settings": "Settings",
     "invoices": "Invoices",
     "production": "Production",
-    "productionLocked": "Upgrade to Production or Production - Exports required"
+    "productionLocked": "Upgrade to Production or Production-Tools required",
+    "productionExports": "Production-Tools",
+    "productionExportsLocked": "Production-Tools tier required"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -311,5 +313,27 @@
     "title": "Production",
     "comingSoon": "Coming soon.",
     "placeholder": "Production content will be updated soon."
+  },
+  "productionExports": {
+    "title": "Production-Tools",
+    "comingSoon": "Coming soon.",
+    "placeholder": "Exports content will be updated soon.",
+    "createLot": "Create lot number",
+    "selectCustomer": "Select customer",
+    "selectInvoice": "Select invoice",
+    "customLotNumber": "Custom lot number (optional)",
+    "create": "Create lot",
+    "yourLots": "Your lot numbers",
+    "lotNumber": "Lot number",
+    "invoice": "Invoice",
+    "customer": "Customer",
+    "createdAt": "Created",
+    "qrCode": "QR code",
+    "downloadQr": "Download QR",
+    "printQr": "Print QR",
+    "noCustomers": "No customers. Add customers first.",
+    "noInvoices": "No invoices for this customer.",
+    "lotCreated": "Lot created.",
+    "errorCreatingLot": "Failed to create lot."
   }
 }

@@ -74,7 +74,9 @@
     "settings": "Ρυθμίσεις",
     "invoices": "Τιμολόγια",
     "production": "Παραγωγή",
-    "productionLocked": "Απαιτείται αναβάθμιση σε Production ή Production - Exports"
+    "productionLocked": "Απαιτείται αναβάθμιση σε Production ή Production-Tools",
+    "productionExports": "Production-Tools",
+    "productionExportsLocked": "Απαιτείται tier Production-Tools"
   },
   "dashboard": {
     "title": "Πίνακας Ελέγχου",
@@ -311,5 +313,27 @@
     "title": "Παραγωγή",
     "comingSoon": "Έρχεται σύντομα.",
     "placeholder": "Το περιεχόμενο της Παραγωγής θα ενημερωθεί σύντομα."
+  },
+  "productionExports": {
+    "title": "Production-Tools",
+    "comingSoon": "Έρχεται σύντομα.",
+    "placeholder": "Το περιεχόμενο των Exports θα ενημερωθεί σύντομα.",
+    "createLot": "Δημιουργία αριθμού παρτίδας",
+    "selectCustomer": "Επιλέξτε πελάτη",
+    "selectInvoice": "Επιλέξτε τιμολόγιο",
+    "customLotNumber": "Προσαρμοσμένος αριθμός παρτίδας (προαιρετικό)",
+    "create": "Δημιουργία",
+    "yourLots": "Οι παρτίδες σας",
+    "lotNumber": "Αριθμός παρτίδας",
+    "invoice": "Τιμολόγιο",
+    "customer": "Πελάτης",
+    "createdAt": "Ημ/νία",
+    "qrCode": "QR κωδικός",
+    "downloadQr": "Λήψη QR",
+    "printQr": "Εκτύπωση QR",
+    "noCustomers": "Δεν υπάρχουν πελάτες. Προσθέστε πελάτες πρώτα.",
+    "noInvoices": "Δεν υπάρχουν τιμολόγια για αυτόν τον πελάτη.",
+    "lotCreated": "Η παρτίδα δημιουργήθηκε.",
+    "errorCreatingLot": "Αποτυχία δημιουργίας παρτίδας."
   }
 }

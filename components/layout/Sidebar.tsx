@@ -19,6 +19,7 @@ import {
   X,
   Factory,
   Lock,
+  FileDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,13 +30,14 @@ interface SidebarProps {
   subscriptionTier?: string;
 }
 
-const PRODUCTION_TIERS = ['production', 'production_exports'];
+const PRODUCTION_TIERS = ['production', 'production_tools'];
 
 export default function Sidebar({ onClose, userRole, businessName, subscriptionTier }: SidebarProps) {
   const t = useTranslations('nav');
   const pathname = usePathname();
 
   const productionUnlocked = subscriptionTier && PRODUCTION_TIERS.includes(subscriptionTier);
+  const exportsUnlocked = subscriptionTier === 'production_tools';
 
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -173,6 +175,29 @@ export default function Sidebar({ onClose, userRole, businessName, subscriptionT
               >
                 <Lock className="h-4 w-4 flex-shrink-0" />
                 <span>{t('production')}</span>
+              </div>
+            )}
+
+            {/* Production-Tools — unlocked only for production_tools tier */}
+            {exportsUnlocked ? (
+              <Link
+                href="/production-exports"
+                onClick={onClose}
+                className={cn('nav-item', (pathname === '/production-exports' || pathname.startsWith('/production-exports/')) && 'active')}
+              >
+                <FileDown className="h-4 w-4 flex-shrink-0" />
+                <span>{t('productionExports')}</span>
+                {(pathname === '/production-exports' || pathname.startsWith('/production-exports/')) && (
+                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
+                )}
+              </Link>
+            ) : (
+              <div
+                className="nav-item opacity-60 cursor-not-allowed"
+                title={t('productionExportsLocked')}
+              >
+                <Lock className="h-4 w-4 flex-shrink-0" />
+                <span>{t('productionExports')}</span>
               </div>
             )}
 

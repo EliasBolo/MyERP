@@ -26,7 +26,7 @@ model Business {
   contactPerson      String?
   notes              String?
   // SaaS subscription fields
-  subscriptionTier   String    @default("standard")  // standard | production | production_exports
+  subscriptionTier   String    @default("standard")  // standard | production | production_tools (display: Production-Tools)
   subscriptionStatus String    @default("active")    // active | inactive | trial | expired
   licenseExpiresAt   DateTime?
   createdAt          DateTime  @default(now())
@@ -39,6 +39,7 @@ model Business {
   warehouses          Warehouse[]
   costs               Cost[]
   invoices            Invoice[]
+  lotNumbers          LotNumber[]
   transactions        Transaction[]
   auditLogs           AuditLog[]
   subscriptionPhases  SubscriptionPhase[]
@@ -241,12 +242,27 @@ model Invoice {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  client   Client       @relation(fields: [clientId], references: [id])
-  items    InvoiceItem[]
-  payments Payment[]
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  client     Client       @relation(fields: [clientId], references: [id])
+  items      InvoiceItem[]
+  payments   Payment[]
+  lotNumbers LotNumber[]
 
   @@unique([number, businessId])
+}
+
+// Production-Tools: lot number bound to an invoice (traceability)
+model LotNumber {
+  id         String   @id @default(cuid())
+  lotNumber  String   // e.g. LOT-2025-0001
+  invoiceId  String
+  businessId String
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@unique([lotNumber, businessId])
 }
 
 model InvoiceItem {

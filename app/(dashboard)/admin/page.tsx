@@ -17,12 +17,12 @@ import { cn } from '@/lib/utils';
 const TIER_LABELS: Record<string, string> = {
   standard: 'Standard',
   production: 'Production',
-  production_exports: 'Production - Exports',
+  production_tools: 'Production-Tools',
 };
 const TIER_COLORS: Record<string, string> = {
   standard: 'badge-info',
   production: 'badge-warning',
-  production_exports: 'badge-success',
+  production_tools: 'badge-success',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -671,7 +671,7 @@ export default function AdminPage() {
                                         onChange={e => setDetailForm((p: any) => ({ ...p, subscriptionTier: e.target.value }))}>
                                         <option value="standard">Standard</option>
                                         <option value="production">Production</option>
-                                        <option value="production_exports">Production - Exports</option>
+                                        <option value="production_tools">Production-Tools</option>
                                       </select>
                                     </div>
                                     <div>
@@ -961,7 +961,7 @@ export default function AdminPage() {
                                       onChange={e => setRenewalForm(p => ({ ...p, tierTo: e.target.value }))}>
                                       <option value="standard">Standard</option>
                                       <option value="production">Production</option>
-                                      <option value="production_exports">Production - Exports</option>
+                                      <option value="production_tools">Production-Tools</option>
                                     </select>
                                   </div>
                                   <div>
@@ -1438,7 +1438,7 @@ export default function AdminPage() {
                           onChange={e => setBizForm(p => ({ ...p, subscriptionTier: e.target.value }))}>
                           <option value="standard">Standard</option>
                           <option value="production">Production</option>
-                          <option value="production_exports">Production - Exports</option>
+                          <option value="production_tools">Production-Tools</option>
                         </select>
                       </div>
                       <div>

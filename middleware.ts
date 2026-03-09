@@ -50,11 +50,21 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
   }
 
   // Παραγωγή — only Production / Production - Exports tiers
-  const productionTiers = ['production', 'production_exports'];
+  const productionTiers = ['production', 'production_tools'];
   if (
     pathname.startsWith('/production') &&
+    !pathname.startsWith('/production-exports') &&
     user.role !== 'master_admin' &&
     (!user.subscriptionTier || !productionTiers.includes(user.subscriptionTier))
+  ) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  // Production-Tools — only production_tools tier
+  if (
+    pathname.startsWith('/production-exports') &&
+    user.role !== 'master_admin' &&
+    user.subscriptionTier !== 'production_tools'
   ) {
     return NextResponse.redirect(new URL('/dashboard', req.url));
   }

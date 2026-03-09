@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const businessId = (session.user as any).businessId;
   if (!businessId) return NextResponse.json({ invoices: [] });
 
+  const { searchParams } = new URL(req.url);
+  const clientId = searchParams.get('clientId') || undefined;
+
   const invoices = await db.invoice.findMany({
-    where: { businessId },
+    where: { businessId, ...(clientId && { clientId }) },
     include: {
       client: { select: { id: true, name: true, code: true, vatNumber: true } },
       items: true,
