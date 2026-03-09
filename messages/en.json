@@ -61,7 +61,9 @@
     "verify": "Verify",
     "enterCode": "Enter the 6-digit code",
     "invalidCode": "Invalid code",
-    "welcome": "Welcome"
+    "welcome": "Welcome",
+    "requestPasswordChange": "Request password change",
+    "requestPasswordChangeMessage": "Contact our support team to request a password change."
   },
   "nav": {
     "dashboard": "Dashboard",

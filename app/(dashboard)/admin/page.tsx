@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import {
-  Building2, Shield, Plus, Edit2, Trash2, Check, X,
+  Building2, Shield, Plus, Edit2, Trash2, Check, X, ShieldOff,
   ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
   Calendar, Layers, AlertTriangle, CheckCircle, Clock, Ban,
   UserPlus, Eye, EyeOff, CreditCard, RefreshCw, User, Phone,
@@ -68,7 +68,7 @@ interface CustomerPayment {
 }
 interface BusinessUser {
   id: string; name: string; email: string; role: string; isActive: boolean;
-  lastLogin?: string; createdAt: string;
+  twoFactorEnabled?: boolean; lastLogin?: string; createdAt: string;
 }
 interface BusinessDetail {
   id: string; name: string; email?: string; vatNumber?: string; phone?: string;
@@ -784,7 +784,24 @@ export default function AdminPage() {
                                             <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
                                             <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                                           </div>
-                                          <div className="flex-shrink-0 text-right">
+                                          <div className="flex-shrink-0 flex items-center gap-2">
+                                            {u.twoFactorEnabled && (
+                                              <button
+                                                onClick={async () => {
+                                                  if (!confirm(`Επαναφορά 2FA για ${u.name}? Θα χρειαστεί να το ρυθμίσει ξανά.`)) return;
+                                                  await fetch(`/api/admin/users/${u.id}`, {
+                                                    method: 'PATCH',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ reset2fa: true }),
+                                                  });
+                                                  loadDetail(b.id);
+                                                }}
+                                                title="Επαναφορά 2FA (χάθηκε κωδικός)"
+                                                className="rounded-lg p-1.5 text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10"
+                                              >
+                                                <ShieldOff className="h-4 w-4" />
+                                              </button>
+                                            )}
                                             <span className={`badge text-xs ${u.role === 'business_admin' ? 'badge-warning' : 'badge-neutral'}`}>
                                               {u.role === 'business_admin' ? 'Admin' : 'User'}
                                             </span>

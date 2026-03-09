@@ -4,11 +4,13 @@ import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: {
-    default: 'MyERP - Σύστημα Διαχείρισης Επιχείρησης',
-    template: '%s | MyERP',
+  title: 'App',
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: { index: false, follow: false },
   },
-  description: 'Ολοκληρωμένο σύστημα ERP για διαχείριση αποθήκης, πελατών και οικονομικών',
   manifest: '/manifest.json',
 };
 

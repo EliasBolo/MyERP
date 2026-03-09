@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
-import { Menu, Bell, Globe, ChevronDown, User } from 'lucide-react';
+import { Menu, Bell, Globe, ChevronDown, User, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SupportContactModal from '@/components/auth/SupportContactModal';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -17,6 +18,7 @@ export default function Header({ onMenuClick, onLocaleChange, currentLocale }: H
   const t = useTranslations();
   const [langOpen, setLangOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
 
   const user = session?.user as any;
 
@@ -114,8 +116,24 @@ export default function Header({ onMenuClick, onLocaleChange, currentLocale }: H
                   <User className="h-4 w-4 text-muted-foreground" />
                   Προφίλ & Ρυθμίσεις
                 </a>
+                <button
+                  type="button"
+                  onClick={() => { setShowSupportModal(true); setProfileOpen(false); }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                >
+                  <KeyRound className="h-4 w-4 text-muted-foreground" />
+                  {t('auth.requestPasswordChange')}
+                </button>
               </div>
             </div>
+          )}
+
+          {showSupportModal && (
+            <SupportContactModal
+              onClose={() => setShowSupportModal(false)}
+              title={t('auth.requestPasswordChange')}
+              message={t('auth.requestPasswordChangeMessage')}
+            />
           )}
         </div>
       </div>

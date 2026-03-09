@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Building2, Lock, Mail, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Building2, Lock, Mail, Eye, EyeOff, ShieldCheck, HelpCircle } from 'lucide-react';
+import SupportContactModal from '@/components/auth/SupportContactModal';
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -14,9 +15,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  // Honeypot: hidden from users, bots often fill it
+  const [hpWebsite, setHpWebsite] = useState('');
+  const [hpPhone, setHpPhone] = useState('');
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hpWebsite || hpPhone) {
+      setError(t('auth.invalidCredentials'));
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -83,7 +92,7 @@ export default function LoginPage() {
             <p className="mt-1 text-sm text-muted-foreground">{t('auth.loginSubtitle')}</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5 relative">
             {error && (
               <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
                 {error}
@@ -106,6 +115,29 @@ export default function LoginPage() {
                   className="w-full rounded-lg border border-border bg-muted pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                 />
               </div>
+            </div>
+
+            {/* Honeypot fields - hidden from view, bots fill them */}
+            <div
+              className="absolute -left-[9999px] opacity-0 h-0 overflow-hidden"
+              aria-hidden="true"
+            >
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+                value={hpWebsite}
+                onChange={(e) => setHpWebsite(e.target.value)}
+              />
+              <input
+                type="text"
+                name="phone"
+                tabIndex={-1}
+                autoComplete="off"
+                value={hpPhone}
+                onChange={(e) => setHpPhone(e.target.value)}
+              />
             </div>
 
             <div>
@@ -143,7 +175,26 @@ export default function LoginPage() {
               ) : null}
               {loading ? t('common.loading') : t('auth.login')}
             </button>
+
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowSupportModal(true)}
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+              >
+                <HelpCircle className="h-4 w-4" />
+                {t('auth.forgotPassword')}
+              </button>
+            </div>
           </form>
+
+          {showSupportModal && (
+            <SupportContactModal
+              onClose={() => setShowSupportModal(false)}
+              title={t('auth.requestPasswordChange')}
+              message={t('auth.requestPasswordChangeMessage')}
+            />
+          )}
 
           <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-blue-400" />

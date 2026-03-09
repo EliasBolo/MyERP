@@ -8,30 +8,44 @@ const { auth } = NextAuth(authConfig);
 
 const publicRoutes = ['/login', '/api/auth', '/verify-2fa', '/setup-2fa', '/suspended'];
 
+// Security: prevent search engine indexing
+const NO_INDEX_HEADERS = { 'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet' } as const;
+function withNoIndex(res: NextResponse) {
+  Object.entries(NO_INDEX_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
+  return res;
+}
+
 export default auth(function middleware(req: NextRequest & { auth: any }) {
   const { pathname } = req.nextUrl;
 
-  // Allow public routes
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route));
-  if (isPublic) return NextResponse.next();
+  if (isPublic) return withNoIndex(NextResponse.next());
 
   const session = req.auth;
-
-  // Redirect to login if not authenticated
   if (!session?.user) {
-    return NextResponse.redirect(new URL('/login', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/login', req.url)));
   }
 
   const user = session.user as any;
 
-  // 2FA check: if enabled but not verified, redirect to verify page
+  // 2FA: if enabled but not verified → verify-2fa
   if (
     user.twoFactorEnabled &&
     !user.twoFactorVerified &&
     !pathname.startsWith('/verify-2fa') &&
-    !pathname.startsWith('/setup-2fa')
+    !pathname.startsWith('/setup-2fa') &&
+    !pathname.startsWith('/api/auth')
   ) {
-    return NextResponse.redirect(new URL('/verify-2fa', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/verify-2fa', req.url)));
+  }
+
+  // 2FA: if not enabled → setup-2fa (first-time or mandatory setup)
+  if (
+    !user.twoFactorEnabled &&
+    !pathname.startsWith('/setup-2fa') &&
+    !pathname.startsWith('/api/auth')
+  ) {
+    return withNoIndex(NextResponse.redirect(new URL('/setup-2fa', req.url)));
   }
 
   // Subscription gate: non-master_admins blocked if license is inactive/expired
@@ -41,15 +55,13 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
     !pathname.startsWith('/suspended') &&
     !pathname.startsWith('/api/')
   ) {
-    return NextResponse.redirect(new URL('/suspended', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/suspended', req.url)));
   }
 
-  // master_admin has no business — redirect them away from business pages to /admin
   if (user.role === 'master_admin' && pathname === '/dashboard') {
-    return NextResponse.redirect(new URL('/admin', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/admin', req.url)));
   }
 
-  // Παραγωγή — only Production / Production - Exports tiers
   const productionTiers = ['production', 'production_tools'];
   if (
     pathname.startsWith('/production') &&
@@ -57,33 +69,29 @@ export default auth(function middleware(req: NextRequest & { auth: any }) {
     user.role !== 'master_admin' &&
     (!user.subscriptionTier || !productionTiers.includes(user.subscriptionTier))
   ) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/dashboard', req.url)));
   }
 
-  // Production-Tools — only production_tools tier
   if (
     pathname.startsWith('/production-exports') &&
     user.role !== 'master_admin' &&
     user.subscriptionTier !== 'production_tools'
   ) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/dashboard', req.url)));
   }
 
-  // Role-based access control
   const isAdminOnly = pathname.startsWith('/users') || pathname.startsWith('/api/users');
   if (isAdminOnly && user.role === 'user') {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/dashboard', req.url)));
   }
 
-  // Master-admin-only routes
   const isMasterAdminOnly =
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/api/admin');
+    pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
   if (isMasterAdminOnly && user.role !== 'master_admin') {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return withNoIndex(NextResponse.redirect(new URL('/dashboard', req.url)));
   }
 
-  return NextResponse.next();
+  return withNoIndex(NextResponse.next());
 });
 
 export const config = {

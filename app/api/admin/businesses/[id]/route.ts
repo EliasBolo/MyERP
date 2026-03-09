@@ -18,7 +18,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       customerPayments: { orderBy: { paidAt: 'desc' } },
       users: {
         where: { role: { in: ['business_admin', 'user'] } },
-        select: { id: true, name: true, email: true, role: true, isActive: true, lastLogin: true, createdAt: true },
+        select: { id: true, name: true, email: true, role: true, isActive: true, twoFactorEnabled: true, lastLogin: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
       },
       _count: { select: { users: true, invoices: true, clients: true, products: true } },
