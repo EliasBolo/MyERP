@@ -12,7 +12,8 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "npx ts-node --skip-project --compiler-options '{\"module\":\"CommonJS\",\"esModuleInterop\":true}' prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:test": "node scripts/test-db-connection.mjs"
   },
   "dependencies": {
     "next": "14.2.5",
