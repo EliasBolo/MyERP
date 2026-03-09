@@ -117,7 +117,7 @@ export function verifyTOTP(secret: string, token: string): boolean {
     secret,
     encoding: 'base32',
     token: String(token || '').trim(),
-    window: 4,
+    window: 6,
   });
 }
 

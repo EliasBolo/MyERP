@@ -3,12 +3,12 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { compare } from 'bcryptjs';
 
-// POST: Master admin only - reset own 2FA using password (lost device fallback)
+// POST: Reset own 2FA using password (lost device / mismatched secret recovery)
 export async function POST(req: NextRequest) {
   const session = await auth();
   const user = session?.user as any;
-  if (!user || user.role !== 'master_admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {

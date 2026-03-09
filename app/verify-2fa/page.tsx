@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { ShieldCheck, KeyRound } from 'lucide-react';
 
 export default function Verify2FAPage() {
-  const { data: session, update } = useSession();
+  const { update } = useSession();
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -13,8 +13,6 @@ export default function Verify2FAPage() {
   const [password, setPassword] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-
-  const isMasterAdmin = (session?.user as any)?.role === 'master_admin';
 
   async function handleResetWithPassword(e: React.FormEvent) {
     e.preventDefault();
@@ -120,37 +118,35 @@ export default function Verify2FAPage() {
             Επαλήθευση
           </button>
 
-          {isMasterAdmin && (
-            <div className="mt-6 pt-6 border-t border-border">
-              <button
-                type="button"
-                onClick={() => setShowPasswordReset(!showPasswordReset)}
-                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5"
-              >
-                <KeyRound className="h-3.5 w-3.5" />
-                Χάσατε τον κωδικό; Επαναφορά με κωδικό πρόσβασης
-              </button>
-              {showPasswordReset && (
-                <form onSubmit={handleResetWithPassword} className="mt-3 space-y-3">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Κωδικός πρόσβασης"
-                    className="w-full rounded-lg border border-border bg-muted px-4 py-2 text-sm"
-                  />
-                  {resetError && <p className="text-xs text-red-400">{resetError}</p>}
-                  <button
-                    type="submit"
-                    disabled={resetLoading || !password}
-                    className="w-full rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
-                  >
-                    {resetLoading ? '...' : 'Επαναφορά 2FA'}
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
+          <div className="mt-6 pt-6 border-t border-border">
+            <button
+              type="button"
+              onClick={() => setShowPasswordReset(!showPasswordReset)}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+            >
+              <KeyRound className="h-3.5 w-3.5" />
+              Δεν δουλεύει ο κωδικός; Επαναφορά με κωδικό πρόσβασης
+            </button>
+            {showPasswordReset && (
+              <form onSubmit={handleResetWithPassword} className="mt-3 space-y-3">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Κωδικός πρόσβασης"
+                  className="w-full rounded-lg border border-border bg-muted px-4 py-2 text-sm"
+                />
+                {resetError && <p className="text-xs text-red-400">{resetError}</p>}
+                <button
+                  type="submit"
+                  disabled={resetLoading || !password}
+                  className="w-full rounded-lg border border-border px-4 py-2 text-sm hover:bg-muted disabled:opacity-50"
+                >
+                  {resetLoading ? '...' : 'Επαναφορά 2FA'}
+                </button>
+              </form>
+            )}
+          </div>
         </form>
       </div>
     </div>
