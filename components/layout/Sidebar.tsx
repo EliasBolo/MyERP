@@ -78,7 +78,7 @@ export default function Sidebar({ onClose, userRole, businessName }: SidebarProp
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
 
-        {/* Master admin sees ONLY the admin panel link */}
+        {/* Master admin sees ONLY the admin panel links */}
         {userRole === 'master_admin' ? (
           <>
             <p className="px-3 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
@@ -89,12 +89,37 @@ export default function Sidebar({ onClose, userRole, businessName }: SidebarProp
               onClick={onClose}
               className={cn(
                 'nav-item text-purple-400 hover:text-purple-300 hover:bg-purple-500/10',
-                (pathname === '/admin' || pathname.startsWith('/admin/')) && 'bg-purple-500/10 text-purple-300'
+                pathname === '/admin' && 'bg-purple-500/10 text-purple-300'
               )}
             >
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span>Master Admin</span>
-              {(pathname === '/admin' || pathname.startsWith('/admin/')) && (
+              {pathname === '/admin' && (
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-purple-400" />
+              )}
+            </Link>
+            <Link
+              href="/admin"
+              onClick={onClose}
+              className={cn(
+                'nav-item text-purple-400 hover:text-purple-300 hover:bg-purple-500/10',
+                pathname === '/admin' && 'bg-purple-500/10 text-purple-300'
+              )}
+            >
+              <Users className="h-4 w-4 flex-shrink-0" />
+              <span>Πελάτες</span>
+            </Link>
+            <Link
+              href="/admin/users"
+              onClick={onClose}
+              className={cn(
+                'nav-item text-purple-400 hover:text-purple-300 hover:bg-purple-500/10',
+                pathname === '/admin/users' && 'bg-purple-500/10 text-purple-300'
+              )}
+            >
+              <Users className="h-4 w-4 flex-shrink-0" />
+              <span>Χρήστες</span>
+              {pathname === '/admin/users' && (
                 <div className="ml-auto h-1.5 w-1.5 rounded-full bg-purple-400" />
               )}
             </Link>

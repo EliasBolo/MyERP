@@ -7,6 +7,7 @@ import {
   Calendar, Layers, AlertTriangle, CheckCircle, Clock, Ban,
   UserPlus, Eye, EyeOff, CreditCard, RefreshCw, User, Phone,
   Mail, MapPin, Hash, FileText, DollarSign, Save,
+  Users, KeyRound,
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -142,6 +143,21 @@ export default function AdminPage() {
   const [phaseEditForm, setPhaseEditForm] = useState<any>({});
   const [phaseSaving, setPhaseSaving] = useState(false);
   const [phaseError, setPhaseError] = useState('');
+
+  // Business-card user management
+  const [showUserForm, setShowUserForm] = useState<string | null>(null);
+  const [userForm, setUserForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+  const [showUserPw, setShowUserPw] = useState(false);
+  const [userSaving, setUserSaving] = useState(false);
+  const [userError, setUserError] = useState('');
+  const [cardPwTarget, setCardPwTarget] = useState<{ userId: string; name: string; businessId: string } | null>(null);
+  const [cardNewPw, setCardNewPw] = useState('');
+  const [cardConfirmPw, setCardConfirmPw] = useState('');
+  const [showCardNewPw, setShowCardNewPw] = useState(false);
+  const [cardPwSaving, setCardPwSaving] = useState(false);
+  const [cardPwError, setCardPwError] = useState('');
+  const [deleteUserTarget, setDeleteUserTarget] = useState<{ userId: string; name: string; businessId: string } | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   useEffect(() => { loadBusinesses(); }, []);
 
@@ -354,6 +370,63 @@ export default function AdminPage() {
     loadDetail(businessId);
   }
 
+  // ── Business-card user management ───────────────────────────────────────────
+  async function createBusinessUser(businessId: string) {
+    setUserError('');
+    if (userForm.password !== userForm.confirmPassword) { setUserError('Οι κωδικοί δεν ταιριάζουν'); return; }
+    setUserSaving(true);
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: userForm.name, email: userForm.email, password: userForm.password, businessId }),
+    });
+    setUserSaving(false);
+    if (res.ok) {
+      setShowUserForm(null);
+      setUserForm({ name: '', email: '', password: '', confirmPassword: '' });
+      loadDetail(businessId);
+      loadBusinesses();
+    } else {
+      const d = await res.json();
+      setUserError(d.error ?? 'Σφάλμα');
+    }
+  }
+
+  async function toggleCardUserActive(businessId: string, userId: string, current: boolean) {
+    await fetch(`/api/admin/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: !current }),
+    });
+    loadDetail(businessId);
+  }
+
+  async function saveCardUserPw() {
+    if (!cardPwTarget) return;
+    setCardPwError('');
+    if (cardNewPw !== cardConfirmPw) { setCardPwError('Οι κωδικοί δεν ταιριάζουν'); return; }
+    setCardPwSaving(true);
+    const res = await fetch(`/api/admin/users/${cardPwTarget.userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: cardNewPw }),
+    });
+    setCardPwSaving(false);
+    if (res.ok) { setCardPwTarget(null); setCardNewPw(''); setCardConfirmPw(''); }
+    else { const d = await res.json(); setCardPwError(d.error ?? 'Σφάλμα'); }
+  }
+
+  async function deleteCardUser() {
+    if (!deleteUserTarget) return;
+    setDeletingUser(true);
+    await fetch(`/api/admin/users/${deleteUserTarget.userId}`, { method: 'DELETE' });
+    setDeletingUser(false);
+    const bId = deleteUserTarget.businessId;
+    setDeleteUserTarget(null);
+    loadDetail(bId);
+    loadBusinesses();
+  }
+
   // ── Input helpers ────────────────────────────────────────────────────────────
   const inputCls = 'w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none';
   const selectCls = 'w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none';
@@ -387,6 +460,21 @@ export default function AdminPage() {
           <Plus className="h-4 w-4" />
           Νέα Επιχείρηση
         </button>
+      </div>
+
+      {/* Stats strip */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { label: 'Σύνολο', value: businesses.length, color: 'text-foreground' },
+          { label: 'Ενεργές', value: businesses.filter(b => b.subscriptionStatus === 'active').length, color: 'text-green-400' },
+          { label: 'Ανενεργές / Ληγμένες', value: businesses.filter(b => b.subscriptionStatus === 'inactive' || b.subscriptionStatus === 'expired').length, color: 'text-red-400' },
+          { label: 'Δοκιμαστικές', value: businesses.filter(b => b.subscriptionStatus === 'trial').length, color: 'text-yellow-400' },
+        ].map(s => (
+          <div key={s.label} className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-xs text-muted-foreground">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Tier legend */}
@@ -484,6 +572,7 @@ export default function AdminPage() {
                         { key: 'payments', label: 'Πληρωμές', icon: CreditCard },
                         { key: 'renewals', label: 'Ανανεώσεις', icon: RefreshCw },
                         { key: 'phases', label: 'Φάσεις', icon: Layers },
+                        { key: 'users', label: 'Χρήστες', icon: Users },
                       ].map(({ key, label, icon: Icon }) => (
                         <button
                           key={key}
@@ -505,6 +594,9 @@ export default function AdminPage() {
                             : null}
                           {key === 'phases' && detail?.subscriptionPhases?.length
                             ? <span className="ml-1 rounded-full bg-primary/10 px-1.5 text-[10px] text-primary">{detail.subscriptionPhases.length}</span>
+                            : null}
+                          {key === 'users' && detail?.users?.length
+                            ? <span className="ml-1 rounded-full bg-primary/10 px-1.5 text-[10px] text-primary">{detail.users.length}</span>
                             : null}
                         </button>
                       ))}
@@ -1117,6 +1209,111 @@ export default function AdminPage() {
                           </div>
                         )}
 
+                        {/* ── TAB: Χρήστες ──────────────────────────────── */}
+                        {tab === 'users' && detail && (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-semibold text-foreground">
+                                Χρήστες Επιχείρησης
+                                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                  {detail.users.length} {detail.users.length === 1 ? 'χρήστης' : 'χρήστες'}
+                                </span>
+                              </p>
+                              <button
+                                onClick={() => { setShowUserForm(b.id); setUserError(''); setUserForm({ name: '', email: '', password: '', confirmPassword: '' }); setShowUserPw(false); }}
+                                className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-500 transition-colors"
+                              >
+                                <Plus className="h-3.5 w-3.5" /> Νέος Χρήστης
+                              </button>
+                            </div>
+
+                            {/* Add user form */}
+                            {showUserForm === b.id && (
+                              <div className="rounded-xl border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+                                {userError && <p className="text-xs text-red-400">{userError}</p>}
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                  <div>
+                                    <label className={labelCls}>Όνομα *</label>
+                                    <input type="text" className={inputCls} placeholder="Ονοματεπώνυμο"
+                                      value={userForm.name} onChange={e => setUserForm(p => ({ ...p, name: e.target.value }))} />
+                                  </div>
+                                  <div>
+                                    <label className={labelCls}>Email *</label>
+                                    <input type="email" className={inputCls} placeholder="user@example.com"
+                                      value={userForm.email} onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))} />
+                                  </div>
+                                  <div>
+                                    <label className={labelCls}>Κωδικός *</label>
+                                    <div className="relative">
+                                      <input type={showUserPw ? 'text' : 'password'} className={inputCls + ' pr-8'} placeholder="min 8 χαρακτήρες"
+                                        value={userForm.password} onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))} />
+                                      <button type="button" onClick={() => setShowUserPw(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                                        {showUserPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className={labelCls}>Επιβεβαίωση *</label>
+                                    <input type={showUserPw ? 'text' : 'password'} className={inputCls} placeholder="Επανάληψη"
+                                      value={userForm.confirmPassword} onChange={e => setUserForm(p => ({ ...p, confirmPassword: e.target.value }))} />
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button onClick={() => createBusinessUser(b.id)} disabled={userSaving}
+                                    className="flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-500 disabled:opacity-50 transition-colors">
+                                    {userSaving ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Check className="h-3.5 w-3.5" />}
+                                    Δημιουργία
+                                  </button>
+                                  <button onClick={() => setShowUserForm(null)}
+                                    className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted transition-colors">
+                                    Ακύρωση
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Users list */}
+                            {detail.users.length === 0 ? (
+                              <p className="text-sm text-muted-foreground italic py-4 text-center">Δεν υπάρχουν χρήστες ακόμα.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {detail.users.map(u => (
+                                  <div key={u.id} className="flex items-center gap-3 rounded-lg border border-border bg-muted/20 px-4 py-3">
+                                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold">
+                                      {u.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="text-sm font-medium text-foreground truncate">{u.name}</p>
+                                        <span className={`badge text-xs ${u.role === 'business_admin' ? 'badge-warning' : 'badge-neutral'}`}>
+                                          {u.role === 'business_admin' ? 'Admin' : 'User'}
+                                        </span>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                                    </div>
+                                    {/* Toggle active */}
+                                    <button onClick={() => toggleCardUserActive(b.id, u.id, u.isActive)} title={u.isActive ? 'Απενεργοποίηση' : 'Ενεργοποίηση'}>
+                                      {u.isActive
+                                        ? <ToggleRight className="h-5 w-5 text-green-400 hover:text-red-400 transition-colors" />
+                                        : <ToggleLeft className="h-5 w-5 text-muted-foreground hover:text-green-400 transition-colors" />}
+                                    </button>
+                                    {/* Change password */}
+                                    <button onClick={() => { setCardPwTarget({ userId: u.id, name: u.name, businessId: b.id }); setCardNewPw(''); setCardConfirmPw(''); setCardPwError(''); setShowCardNewPw(false); }}
+                                      className="rounded p-1 text-muted-foreground hover:bg-blue-500/10 hover:text-blue-400 transition-colors" title="Αλλαγή κωδικού">
+                                      <KeyRound className="h-3.5 w-3.5" />
+                                    </button>
+                                    {/* Delete */}
+                                    <button onClick={() => setDeleteUserTarget({ userId: u.id, name: u.name, businessId: b.id })}
+                                      className="rounded p-1 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors" title="Διαγραφή">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                       </div>
                     )}
                   </div>
@@ -1305,6 +1502,79 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Change Password Modal (business card) ─────────────────────────────── */}
+      {cardPwTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <div>
+                <h2 className="text-base font-semibold text-foreground">Αλλαγή Κωδικού</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">{cardPwTarget.name}</p>
+              </div>
+              <button onClick={() => setCardPwTarget(null)} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              {cardPwError && <p className="text-xs text-red-400">{cardPwError}</p>}
+              <div>
+                <label className={labelCls}>Νέος Κωδικός *</label>
+                <div className="relative">
+                  <input type={showCardNewPw ? 'text' : 'password'} className={inputCls + ' pr-8'} placeholder="min 8 χαρακτήρες"
+                    value={cardNewPw} onChange={e => setCardNewPw(e.target.value)} />
+                  <button type="button" onClick={() => setShowCardNewPw(v => !v)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    {showCardNewPw ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Επιβεβαίωση *</label>
+                <input type={showCardNewPw ? 'text' : 'password'} className={inputCls} placeholder="Επανάληψη νέου κωδικού"
+                  value={cardConfirmPw} onChange={e => setCardConfirmPw(e.target.value)} />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setCardPwTarget(null)} className="flex-1 rounded-xl border border-border py-2 text-sm text-muted-foreground hover:bg-muted transition-colors">
+                  Ακύρωση
+                </button>
+                <button onClick={saveCardUserPw} disabled={cardPwSaving}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 transition-colors">
+                  {cardPwSaving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <KeyRound className="h-4 w-4" />}
+                  Αποθήκευση
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete User Confirm Modal (business card) ─────────────────────────── */}
+      {deleteUserTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-2xl p-6 space-y-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 mx-auto">
+              <Trash2 className="h-5 w-5 text-red-400" />
+            </div>
+            <div className="text-center">
+              <h2 className="text-base font-semibold text-foreground">Διαγραφή Χρήστη</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Διαγραφή του <span className="font-medium text-foreground">{deleteUserTarget.name}</span>; Η ενέργεια δεν αναιρείται.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteUserTarget(null)}
+                className="flex-1 rounded-xl border border-border py-2 text-sm text-muted-foreground hover:bg-muted transition-colors">
+                Άκυρο
+              </button>
+              <button onClick={deleteCardUser} disabled={deletingUser}
+                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-red-600 py-2 text-sm font-medium text-white hover:bg-red-500 disabled:opacity-50 transition-colors">
+                {deletingUser ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> : <Trash2 className="h-4 w-4" />}
+                Διαγραφή
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
-# MyERP — Developer Instructions & Next Steps
+# MyERP — Developer Instructions & Setup Guide
 
-> This file is intended for Cursor or any AI-assisted IDE to understand the project context and continue development safely.
+> Full-stack SaaS ERP for Greek businesses. Multi-tenant, role-based, bilingual (Greek/English).
 
 ---
 
@@ -12,35 +12,74 @@
 
 ---
 
-## ⚡ Quick Start (Every Session)
+## ⚡ Quick Start (Local Development)
 
 ```bash
-# 1. Install dependencies (only first time or after package.json changes)
+# 1. Clone
+git clone https://github.com/EliasBolo/MyERP.git
+cd MyERP
+
+# 2. Install dependencies
 npm install
 
-# 2. Apply database schema (only if schema.prisma changed)
-DATABASE_URL="file:./dev.db" npx prisma db push
+# 3. Create environment file
+cp .env.example .env.local
+# Fill in the required values (see .env section below)
 
-# 3. Seed demo data (only first time or after resetting the DB)
-DATABASE_URL="file:./dev.db" npx ts-node --skip-project --compiler-options '{"module":"CommonJS","esModuleInterop":true}' prisma/seed.ts
+# 4. Apply schema to SQLite (dev only)
+npm run db:push
 
-# 4. Start development server
+# 5. Seed demo data
+npm run db:seed
+
+# 6. Start dev server
 npm run dev
 ```
 
-Open: http://localhost:3000
+Open: **http://localhost:3000**
 
 ---
 
-## 🔐 Demo Login Credentials
+## 🔐 Login Credentials (after seed)
 
-| Role            | Email               | Password      |
-|-----------------|---------------------|---------------|
-| Master Admin    | admin@myerp.gr      | Admin@123456  |
-| Business Admin  | bizadmin@demo.gr    | Admin@123456  |
-| Regular User    | user@demo.gr        | User@123456   |
+All roles use the **same login URL**: `http://localhost:3000/login`
 
-> **2FA is not yet enabled for demo accounts.** Enable it from Settings → Security after logging in.
+| Role | Email | Password | Redirects To |
+|---|---|---|---|
+| **Master Admin** | `admin@myerp.gr` | `Admin@123456` | `/admin` |
+| **Business Admin** | `bizadmin@demo.gr` | `Admin@123456` | `/dashboard` |
+| **Regular User** | `user@demo.gr` | `User@123456` | `/dashboard` |
+
+> There is **no separate admin login URL**. Role is detected from the session and the user is redirected automatically.
+
+---
+
+## 🔑 Environment Variables
+
+### Local (`.env.local`)
+
+```env
+# SQLite for local dev
+DATABASE_URL="file:./dev.db"
+
+# NextAuth — generate with: openssl rand -base64 32
+AUTH_SECRET="your-32-char-random-secret-here"
+
+# App URL (local)
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+### Production / Vercel
+
+Set these in **Vercel → Project → Settings → Environment Variables**:
+
+| Variable | Description | Example |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (Supabase) | `postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres` |
+| `AUTH_SECRET` | Random 32+ char string for JWT signing | `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Your deployed app URL | `https://myerp.vercel.app` |
+
+> **Never** commit `.env.local` to git. It is already in `.gitignore`.
 
 ---
 
@@ -49,252 +88,241 @@ Open: http://localhost:3000
 ```
 MyERP/
 ├── app/
-│   ├── (dashboard)/        # All auth-protected pages (layout wraps with sidebar+header)
-│   │   ├── dashboard/      # KPI cards + charts + low stock alerts
-│   │   ├── inventory/      # Products, categories, stock movements
-│   │   ├── clients/        # Customers & suppliers
-│   │   ├── invoices/       # Sales, purchases, credit notes + PDF export
-│   │   ├── costs/          # Expense management + pie chart
-│   │   ├── analytics/      # Revenue vs Costs charts, top clients
-│   │   ├── reports/        # 5 report types, CSV + PDF export
-│   │   ├── users/          # User management (role-based)
-│   │   └── settings/       # Business info, 2FA setup, data export/import
-│   ├── api/                # All API routes (Next.js Route Handlers)
-│   ├── login/              # Public login page
-│   ├── verify-2fa/         # TOTP verification page
-│   └── setup-2fa/          # QR code setup page
+│   ├── (dashboard)/              # Auth-protected pages (sidebar + header layout)
+│   │   ├── admin/                # Master Admin SaaS panel
+│   │   │   ├── page.tsx          # Business list + stats + customer management
+│   │   │   └── users/page.tsx    # Master admin user management (/admin access)
+│   │   ├── dashboard/            # KPI cards, revenue chart, low stock alerts
+│   │   ├── inventory/            # Products, categories, stock movements
+│   │   ├── clients/              # Customers & suppliers
+│   │   ├── invoices/             # SALE/PURCHASE/CREDIT + PDF export
+│   │   ├── costs/                # Expense management + pie chart
+│   │   ├── analytics/            # Revenue vs Costs charts, top clients
+│   │   ├── reports/              # 5 report types, CSV + PDF export
+│   │   ├── users/                # Business user management (business_admin only)
+│   │   └── settings/             # Business info, 2FA setup, data export/import
+│   ├── api/
+│   │   ├── admin/
+│   │   │   ├── businesses/       # CRUD for businesses (master_admin only)
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts          # GET detail + PATCH
+│   │   │   │       ├── payments/         # CustomerPayment CRUD
+│   │   │   │       ├── renewals/         # LicenseRenewal CRUD
+│   │   │   │       └── phases/           # SubscriptionPhase CRUD
+│   │   │   └── users/            # Master admin user management
+│   │   │       └── [id]/route.ts # PATCH (toggle/password) + DELETE
+│   │   ├── auth/                 # NextAuth route handler
+│   │   ├── dashboard/            # KPI stats API
+│   │   ├── inventory/            # Products + categories + stock
+│   │   ├── clients/              # Client CRUD
+│   │   ├── invoices/             # Invoice CRUD + PDF
+│   │   ├── costs/                # Cost CRUD
+│   │   ├── analytics/            # Analytics data
+│   │   ├── reports/              # Report generation
+│   │   ├── users/                # Business user CRUD
+│   │   └── settings/             # Business settings
+│   ├── login/                    # Public login page
+│   ├── verify-2fa/               # TOTP verification page
+│   └── setup-2fa/                # QR code 2FA setup
 ├── components/
-│   ├── layout/             # Sidebar.tsx, Header.tsx
-│   ├── inventory/          # ProductModal.tsx, StockMovementModal.tsx
-│   ├── clients/            # ClientModal.tsx
-│   ├── costs/              # CostModal.tsx
-│   ├── invoices/           # InvoiceModal.tsx
-│   └── users/              # UserModal.tsx
+│   ├── layout/
+│   │   ├── Sidebar.tsx           # Role-aware sidebar (master_admin vs business users)
+│   │   └── Header.tsx            # Top bar with locale switch + user menu
+│   └── [module]/                 # Feature-specific modal components
 ├── lib/
-│   ├── auth.ts             # NextAuth v5 config with speakeasy TOTP (Node.js only)
-│   ├── auth.config.ts      # Lightweight auth config for Edge Runtime (middleware)
-│   ├── db.ts               # Prisma singleton client
-│   ├── utils.ts            # Shared utility functions
-│   ├── export-pdf.ts       # jsPDF export helpers
-│   └── export-csv.ts       # PapaParse CSV helpers
+│   ├── auth.ts                   # NextAuth v5 + speakeasy TOTP (Node.js only)
+│   ├── auth.config.ts            # Lightweight auth for Edge Runtime (middleware)
+│   ├── db.ts                     # Prisma singleton
+│   ├── utils.ts                  # Shared helpers (cn, formatDate, formatCurrency)
+│   ├── export-pdf.ts             # jsPDF export helpers
+│   └── export-csv.ts             # PapaParse CSV helpers
 ├── messages/
-│   ├── el.json             # Greek translations (primary)
-│   └── en.json             # English translations (secondary)
+│   ├── el.json                   # Greek translations (primary)
+│   └── en.json                   # English translations
 ├── prisma/
-│   ├── schema.prisma       # Full ERP data model
-│   └── seed.ts             # Demo data seeder
-└── middleware.ts            # Auth + route protection (Edge Runtime safe)
+│   ├── schema.prisma             # Full data model
+│   └── seed.ts                   # Demo data seeder
+└── middleware.ts                  # Auth + route protection (Edge Runtime)
 ```
 
 ---
 
-## 🗃️ Database Models (Prisma + SQLite)
+## 👥 User Roles & Access
 
-- **Business** — Multi-tenant root entity
-- **User** — Linked to a Business, roles: `master_admin`, `business_admin`, `user`
-- **Category** — Product categories per business
-- **Warehouse** — Storage locations per business
-- **Product** — SKU, barcode, buy/sell prices, VAT rate, stock levels
-- **StockMovement** — IN / OUT / ADJUSTMENT entries per product
-- **Client** — Customers AND/OR suppliers (type field)
-- **Invoice** — SALE / PURCHASE / CREDIT with line items
-- **InvoiceItem** — Line items with VAT calculation
-- **Payment** — Payments linked to invoices
-- **Transaction** — General ledger entries
-- **Cost** — Business expenses by category (payroll, rent, utilities, marketing, operations)
-- **AuditLog** — Tracks all create/update/delete actions
+| Role | Access | Notes |
+|---|---|---|
+| `master_admin` | `/admin`, `/admin/users` only | Manages all businesses & SaaS subscriptions |
+| `business_admin` | Full ERP + `/users` | Manages own business, creates users |
+| `user` | ERP (no user management) | Read/write own business data |
+
+### Role Routing
+- `master_admin` → always redirected to `/admin` (middleware + `app/page.tsx`)
+- `business_admin` / `user` → redirected to `/dashboard`
+- Unauthenticated → redirected to `/login`
 
 ---
 
-## 🔑 Key Patterns to Follow
+## 🗃️ Database Models
+
+### SaaS / Platform Layer (master_admin manages)
+| Model | Purpose |
+|---|---|
+| `Business` | SaaS customer — each business is a tenant. Has subscription tier, status, contact info |
+| `SubscriptionPhase` | Implementation phases for Production-tier businesses |
+| `LicenseRenewal` | History of subscription renewals with tier/status changes and amounts |
+| `CustomerPayment` | Payments received FROM businesses (SaaS fees) |
+
+### ERP Layer (business users manage — scoped by `businessId`)
+| Model | Purpose |
+|---|---|
+| `User` | App users — linked to a Business. Roles: `master_admin`, `business_admin`, `user` |
+| `Session` | Auth sessions |
+| `Category` | Product categories |
+| `Warehouse` | Storage locations |
+| `Product` | SKU, barcode, buy/sell price, VAT, stock levels |
+| `StockMovement` | IN / OUT / ADJUSTMENT / TRANSFER entries |
+| `Client` | Customers and/or suppliers |
+| `Invoice` | SALE / PURCHASE / CREDIT_NOTE with line items |
+| `InvoiceItem` | Line items with VAT |
+| `Payment` | Payments against invoices |
+| `Transaction` | General ledger entries |
+| `Cost` | Business expenses (payroll, rent, utilities, etc.) |
+| `AuditLog` | Action history (user, action, entity, timestamp) |
+
+### Subscription Tiers
+| Tier | Features |
+|---|---|
+| `standard` | All ERP modules active, no phases |
+| `production` | All ERP modules + SubscriptionPhases support |
+
+### Subscription Statuses
+`active` · `trial` · `inactive` · `expired`
+
+---
+
+## 🔑 Key Patterns
 
 ### Auth in API Routes
 ```ts
 import { auth } from '@/lib/auth';
 
 const session = await auth();
-if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const user = session?.user as any;
+if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-const businessId = (session.user as any).businessId;
-const role = (session.user as any).role;
+const businessId = user.businessId;
+const role = user.role; // 'master_admin' | 'business_admin' | 'user'
 ```
 
 ### Business Isolation (ALWAYS filter by businessId)
 ```ts
 const products = await db.product.findMany({
-  where: { businessId },  // ← never omit this
-  orderBy: { name: 'asc' },
+  where: { businessId },  // ← never omit this for business data
 });
 ```
 
-### Role Check Pattern
+### Master Admin Only
 ```ts
-if (role !== 'business_admin' && role !== 'master_admin') {
+if (user.role !== 'master_admin') {
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 }
 ```
 
-### Adding a New Translation Key
-Add to both `messages/el.json` AND `messages/en.json`, then use:
-```ts
-const t = useTranslations('YourNamespace');
-// <p>{t('yourKey')}</p>
-```
-
-### Edge Runtime Warning
-- `middleware.ts` MUST import from `lib/auth.config.ts` (no speakeasy, no Node.js built-ins)
-- `lib/auth.ts` (with speakeasy) is only used in API routes (Node.js runtime)
+### Edge Runtime Safety
+- `middleware.ts` → import from `lib/auth.config.ts` (no speakeasy, no Node.js built-ins)
+- API routes → import from `lib/auth.ts` (full NextAuth with TOTP)
 
 ---
 
-## 📋 Pending / Suggested Next Steps
+## 🌐 i18n
 
-### 🔴 High Priority (Functionality Gaps)
-
-1. **Invoice PDF — fix line item totals**
-   - File: `lib/export-pdf.ts`
-   - The subtotal/VAT breakdown per line needs verification against actual DB values
-
-2. **Stock movement on invoice creation**
-   - File: `app/api/invoices/route.ts`
-   - When a SALE invoice is marked `paid` or `sent`, stock should auto-decrease
-   - When a PURCHASE invoice is created, stock should auto-increase
-
-3. **Dashboard chart — connect real data**
-   - File: `app/(dashboard)/dashboard/page.tsx`
-   - The Recharts `AreaChart` (Revenue vs Costs) uses monthly grouping — verify API returns correct monthly buckets
-   - API file: `app/api/dashboard/route.ts`
-
-4. **Reports page — date range filtering**
-   - File: `app/(dashboard)/reports/page.tsx` + `app/api/reports/route.ts`
-   - Currently the date range inputs exist but backend filtering needs validation
-
-5. **Audit Log UI**
-   - The `AuditLog` model exists in Prisma but there's no UI page yet
-   - Add `app/(dashboard)/audit/page.tsx` and `app/api/audit/route.ts`
-   - Show: user, action, entity, timestamp
+- Primary language: **Greek** (`el`)
+- Secondary: **English** (`en`)
+- Locale stored in cookie `NEXT_LOCALE`
+- Switch via Header dropdown → sets cookie → reloads page
+- Translation files: `messages/el.json`, `messages/en.json`
 
 ---
 
-### 🟡 Medium Priority (UX Improvements)
+## 🚀 Production Deployment (Vercel + Supabase)
 
-6. **Mobile sidebar**
-   - File: `components/layout/Sidebar.tsx`
-   - The hamburger menu button in `Header.tsx` toggles `sidebarOpen` state but the sidebar overlay on mobile needs testing and possible z-index fixes
+### 1. Prepare Prisma for PostgreSQL
 
-7. **Invoice status auto-update to "overdue"**
-   - Add a cron-like check: invoices with `dueDate < now` and status `sent` should show as `overdue`
-   - Can be done at query time in `app/api/invoices/route.ts` with a `prisma.$transaction`
-
-8. **Pagination on large tables**
-   - Inventory, Clients, Invoices pages load all records — add pagination for performance
-   - Recommended: server-side with `skip`/`take` in Prisma queries
-
-9. **Toast notifications**
-   - Radix UI `@radix-ui/react-toast` is already installed
-   - Add a global `<Toaster />` in `app/(dashboard)/layout.tsx` and a `useToast` hook
-   - Replace `alert()` / console.log success messages in modals with toasts
-
-10. **Confirm delete dialogs**
-    - Currently delete buttons call API immediately
-    - Add a `<ConfirmDialog />` wrapper using `@radix-ui/react-dialog` (already installed)
-
----
-
-### 🟢 Nice to Have (Future Features)
-
-11. **Email notifications** — Invoice sent, overdue reminders (add nodemailer or Resend)
-12. **Multi-warehouse stock tracking** — The `Warehouse` model exists but inventory UI only shows total stock
-13. **Purchase order workflow** — Separate PO creation before PURCHASE invoice
-14. **Client portal** — Read-only invoice view for clients via token link
-15. **PostgreSQL migration for production** — Change `provider` in `schema.prisma` from `sqlite` to `postgresql` and update `DATABASE_URL`
-16. **Barcode scanning** — Use `@zxing/browser` for camera-based barcode lookup in inventory
-
----
-
-## 🌐 i18n Notes
-
-- Language is stored in a **cookie** (`NEXT_LOCALE`)
-- Switching language: Header dropdown calls `document.cookie = 'NEXT_LOCALE=en'` then `window.location.reload()`
-- To add a new language: add a new JSON file in `messages/`, update `i18n/request.ts` and `next.config.mjs`
-
----
-
-## 🚀 Deployment (Production)
-
-### Switch to PostgreSQL
-1. Edit `prisma/schema.prisma`:
+Edit `prisma/schema.prisma`:
 ```prisma
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")  // required for Supabase connection pooling
 }
 ```
-2. Update `.env.local`:
+
+### 2. Set Vercel Environment Variables
+
 ```
-DATABASE_URL="postgresql://user:password@host:5432/myerp"
+DATABASE_URL   = postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true
+DIRECT_URL     = postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres
+AUTH_SECRET    = <output of: openssl rand -base64 32>
+NEXTAUTH_URL   = https://your-app.vercel.app
 ```
-3. Run migrations:
+
+### 3. Run Migrations on First Deploy
+
 ```bash
-npx prisma migrate dev --name init
+# Locally, pointing at production DB
+DATABASE_URL="your-supabase-url" npx prisma migrate deploy
 ```
 
-### Environment Variables Required
-```env
-DATABASE_URL="..."
-AUTH_SECRET="min-32-char-random-string"
-NEXTAUTH_URL="https://yourdomain.com"
-MASTER_ADMIN_EMAIL="admin@yourdomain.com"
-MASTER_ADMIN_PASSWORD="StrongPassword123!"
+Or add to your Vercel build command:
+```
+prisma generate && prisma migrate deploy && next build
 ```
 
-### Recommended Platforms
-- **Vercel** (frontend) + **Railway** or **Supabase** (PostgreSQL)
-- Or **Railway** for full-stack (Next.js + PostgreSQL in one project)
+### 4. Seed Production Data (once)
 
----
+```bash
+DATABASE_URL="your-supabase-url" npx ts-node --skip-project \
+  --compiler-options '{"module":"CommonJS","esModuleInterop":true}' \
+  prisma/seed.ts
+```
 
-## 🐛 Known Issues / Gotchas
-
-| Issue | Details | Fix |
-|-------|---------|-----|
-| `db:seed` script | Shell escaping differs between Mac/Linux/Windows | Always use the direct `npx ts-node` command shown in Quick Start |
-| `speakeasy` in Edge Runtime | Cannot be imported in `middleware.ts` | Use `lib/auth.config.ts` for middleware, `lib/auth.ts` for API routes only |
-| SQLite concurrent writes | SQLite doesn't support concurrent writes well | Fine for dev/single-user; use PostgreSQL for production |
-| `manifest.json` missing | `app/layout.tsx` references `/manifest.json` | Either create `public/manifest.json` or remove the manifest line |
+> See `SUPABASE-DATABASE.md` for the full SQL schema to create the database manually in Supabase.
 
 ---
 
 ## 📦 Key Dependencies
 
 | Package | Purpose |
-|---------|---------|
-| `next-auth@^5.0.0-beta.19` | Authentication (JWT sessions) |
-| `speakeasy` | TOTP 2FA code generation/verification |
-| `qrcode` | QR code generation for 2FA setup |
+|---|---|
+| `next@14` | App Router framework |
+| `next-auth@^5.0.0-beta.19` | JWT authentication |
+| `speakeasy` | TOTP 2FA |
+| `qrcode` | QR code for 2FA setup |
 | `bcryptjs` | Password hashing |
-| `prisma` + `@prisma/client` | ORM + type-safe DB queries |
-| `next-intl` | i18n (Greek/English) |
+| `prisma` + `@prisma/client` | ORM + type-safe queries |
+| `next-intl` | Greek/English i18n |
 | `recharts` | Dashboard charts |
 | `jspdf` + `jspdf-autotable` | PDF export |
 | `papaparse` | CSV export/import |
+| `lucide-react` | Icons |
 | `@radix-ui/*` | Accessible UI primitives |
-| `react-hook-form` + `zod` | Form handling + validation |
-| `zustand` | Client-side state (modals, UI state) |
-| `lucide-react` | Icon library |
+| `tailwindcss` | Styling |
 
 ---
 
-## 🔗 GitHub Repository
+## 🐛 Known Issues / Gotchas
+
+| Issue | Details | Fix |
+|---|---|---|
+| Stale Prisma Client | After `db push`, running server has old client cached | Restart the dev server |
+| `speakeasy` in Edge Runtime | Cannot use in `middleware.ts` | Use `auth.config.ts` for middleware only |
+| SQLite concurrent writes | Not suitable for production | Use PostgreSQL (Supabase) for prod |
+| `db:seed` on Windows | Shell escaping differences | Use the `npx ts-node` command directly |
+
+---
+
+## 🔗 Repository
 
 **https://github.com/EliasBolo/MyERP**
-
-```bash
-# Clone fresh
-git clone https://github.com/EliasBolo/MyERP.git
-cd MyERP
-```
-
----
 
 *Last updated: 2026-03-08*
