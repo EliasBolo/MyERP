@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { ShieldCheck, KeyRound } from 'lucide-react';
 
 export default function Verify2FAPage() {
@@ -31,8 +31,8 @@ export default function Verify2FAPage() {
         setResetLoading(false);
         return;
       }
-      await update({ twoFactorEnabled: false, twoFactorVerified: true });
-      window.location.href = '/setup-2fa';
+      await signOut({ redirect: false });
+      window.location.href = '/login?reset2fa=1';
     } catch {
       setResetError('Error');
       setResetLoading(false);

@@ -79,9 +79,15 @@ export default function Setup2FAPage() {
               </p>
             </div>
 
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-4">
+              <p className="text-xs text-amber-200">
+                <strong>Επαναφορά 2FA;</strong> Διαγράψτε την παλιά καταχώρηση MyERP από το authenticator σας πριν σαρώσετε τον νέο QR κώδικα.
+              </p>
+            </div>
+
             <div className="rounded-lg bg-muted p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">
-                Βήμα 2: Σαρώστε τον QR κώδικα
+                Βήμα 2: Σαρώστε τον νέο QR κώδικα
               </h3>
               {qrCode ? (
                 <div className="flex justify-center">
