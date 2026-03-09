@@ -35,8 +35,7 @@ export async function GET(req: NextRequest) {
     const [invoices, costs] = await Promise.all([
       db.invoice.findMany({
         where: { businessId, status: 'paid', issueDate: { gte: dateFrom, lte: dateTo } },
-        include: { client: { select: { id: true, name: true } } },
-        select: { total: true, issueDate: true, client: true, clientId: true },
+        select: { total: true, issueDate: true, clientId: true, client: { select: { id: true, name: true } } },
       }),
       db.cost.findMany({
         where: { businessId, date: { gte: dateFrom, lte: dateTo } },
