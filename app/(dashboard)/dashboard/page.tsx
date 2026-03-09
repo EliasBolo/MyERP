@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { useSession } from 'next-auth/react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface DashboardStats {
@@ -40,7 +41,9 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard');
+  const { data: session } = useSession();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [businessInfo, setBusinessInfo] = useState<{ name?: string; vatNumber?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,6 +54,13 @@ export default function DashboardPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/settings/business')
+      .then((r) => r.json())
+      .then((data) => setBusinessInfo(data.business ?? null))
+      .catch(() => setBusinessInfo(null));
   }, []);
 
   if (loading) {
@@ -103,9 +113,27 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="page-title">{t('title')}</h1>
-        <p className="page-subtitle">Επισκόπηση δραστηριότητας επιχείρησης</p>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-subtitle">Επισκόπηση δραστηριότητας επιχείρησης</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card/70 px-3 py-2 lg:min-w-[260px]">
+          <div className="grid grid-cols-3 gap-2 text-[11px] sm:text-xs">
+            <div className="text-muted-foreground">Επιχείρηση</div>
+            <div className="text-muted-foreground">ΑΦΜ</div>
+            <div className="text-muted-foreground">Χρήστης</div>
+            <div className="truncate font-medium text-foreground">
+              {businessInfo?.name || '—'}
+            </div>
+            <div className="truncate font-medium text-foreground">
+              {businessInfo?.vatNumber || '—'}
+            </div>
+            <div className="truncate font-medium text-foreground">
+              {(session?.user as any)?.name || (session?.user as any)?.email || '—'}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats grid */}
