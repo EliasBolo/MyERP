@@ -5,7 +5,12 @@ import SessionProviderWrapper from '@/components/providers/SessionProviderWrappe
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'App',
+  title: 'MyERP - Devalocos',
+  description: 'ERP system for inventory, clients, invoices, costs, and business management. By Devalocos.',
+  openGraph: {
+    title: 'MyERP - Devalocos',
+    description: 'ERP system for inventory, clients, invoices, costs, and business management. By Devalocos.',
+  },
   robots: {
     index: false,
     follow: false,
