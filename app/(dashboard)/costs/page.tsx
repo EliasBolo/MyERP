@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Search, Edit2, Trash2, TrendingDown, Download, Tag, FileUp, FileText, RefreshCw, Printer, BarChart3, BarChart2Off } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, Download, Tag, FileUp, FileText, RefreshCw, Printer, BarChart3, BarChart2 } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { exportToCSV } from '@/lib/export-csv';
@@ -207,7 +207,7 @@ export default function CostsPage() {
             className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             title={showChart ? 'Απόκρυψη γραφήματος' : 'Εμφάνιση γραφήματος'}
           >
-            {showChart ? <BarChart2Off className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+            {showChart ? <BarChart2 className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
             <span className="hidden sm:block">{showChart ? 'Απόκρυψη γραφήματος' : 'Γράφημα'}</span>
           </button>
           <button
