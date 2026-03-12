@@ -1,22 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { X, TrendingDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, TrendingDown, Plus } from 'lucide-react';
+
+interface CostCategory {
+  id: string;
+  name: string;
+  color: string;
+}
 
 interface CostModalProps {
   cost?: any;
+  categories: CostCategory[];
   onClose: () => void;
   onSave: () => void;
+  onCategoriesChange?: () => void;
 }
-
-const CATEGORIES = [
-  { value: 'payroll', label: 'Μισθοδοσία' },
-  { value: 'rent', label: 'Ενοίκιο' },
-  { value: 'utilities', label: 'Λογαριασμοί/Κοινόχρηστα' },
-  { value: 'marketing', label: 'Marketing' },
-  { value: 'operations', label: 'Λειτουργικά' },
-  { value: 'other', label: 'Άλλα' },
-];
 
 const RECURRENCES = [
   { value: 'once', label: 'Εφάπαξ' },
@@ -25,22 +24,66 @@ const RECURRENCES = [
   { value: 'yearly', label: 'Ετήσια' },
 ];
 
-export default function CostModal({ cost, onClose, onSave }: CostModalProps) {
+const PRESET_COLORS = ['#3b82f6', '#8b5cf6', '#f59e0b', '#10b981', '#ef4444', '#6b7280', '#ec4899', '#14b8a6'];
+
+export default function CostModal({ cost, categories, onClose, onSave, onCategoriesChange }: CostModalProps) {
   const isEdit = !!cost;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#6b7280');
+  const [addingCategory, setAddingCategory] = useState(false);
+  const defaultCategoryId = categories[0]?.id ?? '';
   const [form, setForm] = useState({
-    category: cost?.category ?? 'other',
+    costCategoryId: cost?.costCategoryId ?? cost?.costCategory?.id ?? defaultCategoryId,
     description: cost?.description ?? '',
     amount: cost?.amount ?? '',
+    taxRate: cost?.taxRate != null ? String(cost.taxRate) : '',
     date: cost?.date ? cost.date.split('T')[0] : new Date().toISOString().split('T')[0],
     recurrence: cost?.recurrence ?? 'once',
     vendor: cost?.vendor ?? '',
     notes: cost?.notes ?? '',
   });
 
+  useEffect(() => {
+    if (form.costCategoryId || !categories.length) return;
+    setForm((p) => ({ ...p, costCategoryId: categories[0].id }));
+  }, [categories, form.costCategoryId]);
+
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newCategoryName.trim();
+    if (!name) return;
+    setAddingCategory(true);
+    setError('');
+    try {
+      const res = await fetch('/api/cost-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, color: newCategoryColor }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Σφάλμα');
+        return;
+      }
+      setForm((p) => ({ ...p, costCategoryId: data.category?.id }));
+      setNewCategoryName('');
+      setNewCategoryColor('#6b7280');
+      setShowNewCategory(false);
+      onCategoriesChange?.();
+    } finally {
+      setAddingCategory(false);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.costCategoryId) {
+      setError('Επιλέξτε κατηγορία');
+      return;
+    }
     setLoading(true);
     setError('');
 
@@ -49,7 +92,11 @@ export default function CostModal({ cost, onClose, onSave }: CostModalProps) {
       const res = await fetch(url, {
         method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, amount: parseFloat(String(form.amount)) }),
+        body: JSON.stringify({
+          ...form,
+          amount: parseFloat(String(form.amount)),
+          taxRate: form.taxRate === '' ? null : form.taxRate,
+        }),
       });
 
       if (!res.ok) {
@@ -98,11 +145,54 @@ export default function CostModal({ cost, onClose, onSave }: CostModalProps) {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Κατηγορία</label>
-                <select value={form.category} onChange={(e) => setForm(p => ({ ...p, category: e.target.value }))}
-                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none">
-                  {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Κατηγορία *</label>
+                <select
+                  value={form.costCategoryId}
+                  onChange={(e) => setForm((p) => ({ ...p, costCategoryId: e.target.value }))}
+                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
                 </select>
+                {!showNewCategory ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCategory(true)}
+                    className="mt-1.5 flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Νέα κατηγορία
+                  </button>
+                ) : (
+                  <form onSubmit={handleAddCategory} className="mt-2 rounded-lg border border-border bg-muted/50 p-2 space-y-2">
+                    <input
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Όνομα κατηγορίας"
+                      className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
+                    />
+                    <div className="flex gap-1">
+                      {PRESET_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="h-5 w-5 rounded-full border-2 border-transparent hover:border-white"
+                          style={{ backgroundColor: c }}
+                          onClick={() => setNewCategoryColor(c)}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }} className="text-xs text-muted-foreground">
+                        Ακύρωση
+                      </button>
+                      <button type="submit" disabled={addingCategory || !newCategoryName.trim()} className="text-xs text-blue-400 disabled:opacity-50">
+                        Προσθήκη
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
 
               <div>
@@ -110,6 +200,20 @@ export default function CostModal({ cost, onClose, onSave }: CostModalProps) {
                 <input required type="number" step="0.01" min="0" value={form.amount}
                   onChange={(e) => setForm(p => ({ ...p, amount: e.target.value }))}
                   className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-muted-foreground mb-1.5">Φόρος (%) — προαιρετικό</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  placeholder="π.χ. 24"
+                  value={form.taxRate}
+                  onChange={(e) => setForm((p) => ({ ...p, taxRate: e.target.value }))}
+                  className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground"
+                />
               </div>
 
               <div>

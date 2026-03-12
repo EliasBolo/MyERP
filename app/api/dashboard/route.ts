@@ -37,17 +37,27 @@ export async function GET() {
     const [thisMonthCosts, lastMonthCosts] = await Promise.all([
       db.cost.findMany({
         where: { businessId, date: { gte: thisMonthStart } },
-        select: { amount: true },
+        select: { amount: true, taxRate: true },
       }),
       db.cost.findMany({
         where: { businessId, date: { gte: lastMonthStart, lte: lastMonthEnd } },
-        select: { amount: true },
+        select: { amount: true, taxRate: true },
       }),
     ]);
 
     const thisCosts = thisMonthCosts.reduce((s, c) => s + c.amount, 0);
     const lastCosts = lastMonthCosts.reduce((s, c) => s + c.amount, 0);
     const costsChange = lastCosts > 0 ? ((thisCosts - lastCosts) / lastCosts) * 100 : 0;
+
+    // Taxes (from costs that have taxRate set)
+    const thisMonthTaxes = thisMonthCosts.reduce(
+      (s, c) => s + (c.taxRate != null ? c.amount * (c.taxRate / 100) : 0),
+      0
+    );
+    const lastMonthTaxes = lastMonthCosts.reduce(
+      (s, c) => s + (c.taxRate != null ? c.amount * (c.taxRate / 100) : 0),
+      0
+    );
 
     // Clients
     const [clientCount, newClients] = await Promise.all([
@@ -111,6 +121,11 @@ export async function GET() {
     return NextResponse.json({
       revenue: { value: thisRevenue, change: revenueChange },
       costs: { value: thisCosts, change: costsChange },
+      taxes: {
+        thisMonth: thisMonthTaxes,
+        lastMonth: lastMonthTaxes,
+        change: lastMonthTaxes > 0 ? ((thisMonthTaxes - lastMonthTaxes) / lastMonthTaxes) * 100 : 0,
+      },
       clients: { value: clientCount, change: newClients },
       products: {
         value: products.length,

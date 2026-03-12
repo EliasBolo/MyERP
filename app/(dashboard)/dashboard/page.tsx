@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
+  Percent,
 } from 'lucide-react';
 import {
   LineChart,
@@ -30,6 +31,7 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 interface DashboardStats {
   revenue: { value: number; change: number };
   costs: { value: number; change: number };
+  taxes?: { thisMonth: number; lastMonth: number; change: number };
   clients: { value: number; change: number };
   products: { value: number; lowStock: number };
   pendingInvoices: { value: number; amount: number };
@@ -174,8 +176,8 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Profit card + pending invoices */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {/* Profit, pending invoices, taxes */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="stat-card">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-medium text-muted-foreground">{t('profit')}</p>
@@ -197,6 +199,25 @@ export default function DashboardPage() {
           <p className="text-3xl font-bold text-foreground">{stats?.pendingInvoices.value ?? 0}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Αξία: {formatCurrency(stats?.pendingInvoices.amount ?? 0)}
+          </p>
+        </div>
+
+        <div className="stat-card">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-medium text-muted-foreground">Φόροι (από έξοδα)</p>
+            <Percent className="h-5 w-5 text-amber-400" />
+          </div>
+          <p className="text-3xl font-bold text-foreground">
+            {formatCurrency(stats?.taxes?.thisMonth ?? 0)}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {stats?.taxes && stats.taxes.thisMonth > 0 && stats.taxes.change !== 0 ? (
+              <span className={stats.taxes.change >= 0 ? 'text-amber-400' : 'text-green-400'}>
+                {stats.taxes.change >= 0 ? '+' : ''}{stats.taxes.change.toFixed(1)}% {t('vsLastMonth')}
+              </span>
+            ) : (
+              'Φόρος μόνο όταν προστεθεί στα έξοδα'
+            )}
           </p>
         </div>
       </div>

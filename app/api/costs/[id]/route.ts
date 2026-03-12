@@ -8,17 +8,23 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const body = await req.json();
+    const data: Record<string, unknown> = {
+      description: body.description,
+      amount: parseFloat(body.amount),
+      date: new Date(body.date),
+      recurrence: body.recurrence,
+      vendor: body.vendor || null,
+      notes: body.notes || null,
+    };
+    if (body.costCategoryId != null) data.costCategoryId = body.costCategoryId;
+    if (body.taxRate !== undefined) {
+      const tr = body.taxRate != null && body.taxRate !== '' ? parseFloat(body.taxRate) : null;
+      data.taxRate = tr != null && !Number.isNaN(tr) ? tr : null;
+    }
     const cost = await db.cost.update({
       where: { id: params.id },
-      data: {
-        category: body.category,
-        description: body.description,
-        amount: parseFloat(body.amount),
-        date: new Date(body.date),
-        recurrence: body.recurrence,
-        vendor: body.vendor || null,
-        notes: body.notes || null,
-      },
+      data,
+      include: { costCategory: true },
     });
     return NextResponse.json({ cost });
   } catch (error: any) {

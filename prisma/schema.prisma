@@ -37,6 +37,7 @@ model Business {
   products            Product[]
   categories          Category[]
   warehouses          Warehouse[]
+  costCategories      CostCategory[]
   costs               Cost[]
   invoices            Invoice[]
   lotNumbers          LotNumber[]
@@ -369,20 +370,48 @@ model Transaction {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
-model Cost {
-  id          String   @id @default(cuid())
-  businessId  String
-  category    String   // payroll | rent | utilities | marketing | operations | other
-  description String
-  amount      Float
-  date        DateTime @default(now())
-  recurrence  String?  // once | monthly | quarterly | yearly
-  vendor      String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model CostCategory {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  color      String   @default("#6b7280") // hex
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  costs    Cost[]
+}
+
+model Cost {
+  id              String       @id @default(cuid())
+  businessId      String
+  costCategoryId  String?
+  category        String?      // legacy: payroll | rent | ... (kept for backward compat)
+  description     String
+  amount          Float
+  taxRate         Float?       // optional VAT/tax % (e.g. 24) — only when user adds it
+  date            DateTime     @default(now())
+  recurrence      String?      // once | monthly | quarterly | yearly
+  vendor          String?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  business         Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  costCategory     CostCategory?    @relation(fields: [costCategoryId], references: [id], onDelete: SetNull)
+  invoiceFile      CostInvoiceFile?
+}
+
+model CostInvoiceFile {
+  id        String   @id @default(cuid())
+  costId    String   @unique
+  fileName  String
+  mimeType  String
+  data      Bytes    @db.ByteA
+  createdAt DateTime @default(now())
+
+  cost Cost @relation(fields: [costId], references: [id], onDelete: Cascade)
 }
 
 // ─── AUDIT ────────────────────────────────────────────────────────────────────

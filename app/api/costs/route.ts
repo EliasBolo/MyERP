@@ -11,6 +11,10 @@ export async function GET() {
   const costs = await db.cost.findMany({
     where: { businessId },
     orderBy: { date: 'desc' },
+    include: {
+      costCategory: true,
+      invoiceFile: { select: { id: true, fileName: true, mimeType: true } },
+    },
   });
   return NextResponse.json({ costs });
 }
@@ -23,17 +27,22 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    const costCategoryId = body.costCategoryId || null;
+    if (!costCategoryId) return NextResponse.json({ error: 'Κατηγορία απαιτείται' }, { status: 400 });
+    const taxRate = body.taxRate != null && body.taxRate !== '' ? parseFloat(body.taxRate) : null;
     const cost = await db.cost.create({
       data: {
         businessId,
-        category: body.category || 'other',
+        costCategoryId,
         description: body.description,
         amount: parseFloat(body.amount),
+        taxRate: taxRate != null && !Number.isNaN(taxRate) ? taxRate : null,
         date: body.date ? new Date(body.date) : new Date(),
         recurrence: body.recurrence || 'once',
         vendor: body.vendor || null,
         notes: body.notes || null,
       },
+      include: { costCategory: true },
     });
     return NextResponse.json({ cost }, { status: 201 });
   } catch (error: any) {

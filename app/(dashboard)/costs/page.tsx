@@ -1,43 +1,46 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Search, Edit2, Trash2, TrendingDown, Download } from 'lucide-react';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Plus, Search, Edit2, Trash2, TrendingDown, Download, Tag, FileUp, FileText, RefreshCw, Printer } from 'lucide-react';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { exportToCSV } from '@/lib/export-csv';
-import { exportToPDF } from '@/lib/export-pdf';
 import CostModal from '@/components/costs/CostModal';
+import CostCategoriesModal from '@/components/costs/CostCategoriesModal';
 
-const CATEGORY_COLORS: Record<string, string> = {
-  payroll: '#3b82f6',
-  rent: '#8b5cf6',
-  utilities: '#f59e0b',
-  marketing: '#10b981',
-  operations: '#ef4444',
-  other: '#6b7280',
-};
+function getCostCategoryKey(cost: any): string {
+  return cost.costCategoryId ?? cost.costCategory?.id ?? cost.category ?? 'other';
+}
 
-const CATEGORY_LABELS: Record<string, string> = {
-  payroll: 'Μισθοδοσία',
-  rent: 'Ενοίκιο',
-  utilities: 'Λογαριασμοί',
-  marketing: 'Marketing',
-  operations: 'Λειτουργικά',
-  other: 'Άλλα',
-};
+function getCostCategoryLabel(cost: any): string {
+  return cost.costCategory?.name ?? cost.category ?? '—';
+}
+
+function getCostCategoryColor(cost: any, categoryMap: Map<string, { name: string; color: string }>): string {
+  const key = cost.costCategoryId ?? cost.costCategory?.id;
+  if (key && categoryMap.has(key)) return categoryMap.get(key)!.color;
+  return '#6b7280';
+}
 
 export default function CostsPage() {
   const t = useTranslations('costs');
   const [costs, setCosts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [selectedCost, setSelectedCost] = useState<any>(null);
+  const [uploadingCostId, setUploadingCostId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const categoryMap = new Map(categories.map((c) => [c.id, { name: c.name, color: c.color }]));
 
   useEffect(() => {
     loadCosts();
+    loadCategories();
   }, []);
 
   async function loadCosts() {
@@ -48,23 +51,35 @@ export default function CostsPage() {
     setLoading(false);
   }
 
+  async function loadCategories() {
+    const res = await fetch('/api/cost-categories');
+    const data = await res.json();
+    setCategories(data.categories ?? []);
+  }
+
   const filtered = costs.filter((c) => {
     const matchSearch =
       !search ||
       c.description.toLowerCase().includes(search.toLowerCase()) ||
       (c.vendor && c.vendor.toLowerCase().includes(search.toLowerCase()));
-    const matchCat = categoryFilter === 'all' || c.category === categoryFilter;
+    const catKey = getCostCategoryKey(c);
+    const matchCat = categoryFilter === 'all' || catKey === categoryFilter;
     return matchSearch && matchCat;
   });
 
   const total = filtered.reduce((sum, c) => sum + c.amount, 0);
 
-  const pieData = Object.entries(
-    filtered.reduce((acc: Record<string, number>, c) => {
-      acc[c.category] = (acc[c.category] || 0) + c.amount;
-      return acc;
-    }, {})
-  ).map(([name, value]) => ({ name: CATEGORY_LABELS[name] || name, value, key: name }));
+  const pieByKey = filtered.reduce((acc: Record<string, { amount: number; label: string }>, c) => {
+    const key = getCostCategoryKey(c);
+    const label = getCostCategoryLabel(c);
+    if (!acc[key]) acc[key] = { amount: 0, label };
+    acc[key].amount += c.amount;
+    return acc;
+  }, {});
+  const pieData = Object.entries(pieByKey).map(([key, { amount, label }]) => ({ name: label, value: amount, key }));
+  const getPieColor = (entry: { key: string }) => categoryMap.get(entry.key)?.color ?? '#6b7280';
+
+  const uploadTargetRef = useRef<string | null>(null);
 
   async function handleDelete(id: string) {
     if (!confirm('Διαγραφή εξόδου;')) return;
@@ -72,11 +87,60 @@ export default function CostsPage() {
     loadCosts();
   }
 
+  function triggerInvoiceUpload(costId: string) {
+    uploadTargetRef.current = costId;
+    fileInputRef.current?.click();
+  }
+
+  async function onInvoiceFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const costId = uploadTargetRef.current;
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!costId || !file) return;
+    uploadTargetRef.current = null;
+    setUploadingCostId(costId);
+    try {
+      const formData = new FormData();
+      formData.set('file', file);
+      const res = await fetch(`/api/costs/${costId}/invoice`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Αποτυχία ανεβάσματος');
+      } else {
+        await loadCosts();
+      }
+    } finally {
+      setUploadingCostId(null);
+    }
+  }
+
+  function viewInvoice(costId: string) {
+    window.open(`/api/costs/${costId}/invoice`, '_blank', 'noopener');
+  }
+
+  function printInvoice(costId: string) {
+    const w = window.open(`/api/costs/${costId}/invoice`, '_blank', 'noopener');
+    if (w) w.onload = () => { w.print(); };
+  }
+
   function handleExportCSV() {
-    exportToCSV(filtered, [
+    const rows = filtered.map((c) => ({
+      ...c,
+      categoryLabel: getCostCategoryLabel(c),
+      dateFmt: c.date ? formatDate(c.date) : '',
+      recurrence: c.recurrence === 'monthly' ? 'Μηνιαία' : c.recurrence === 'quarterly' ? 'Τριμηνιαία' : c.recurrence === 'yearly' ? 'Ετήσια' : 'Εφάπαξ',
+      taxPct: c.taxRate != null ? `${c.taxRate}%` : '',
+      taxAmount: c.taxRate != null ? (c.amount * c.taxRate) / 100 : '',
+    }));
+    exportToCSV(rows, [
       { header: 'Κατηγορία', key: 'categoryLabel' },
       { header: 'Περιγραφή', key: 'description' },
       { header: 'Ποσό', key: 'amount' },
+      { header: 'Φόρος %', key: 'taxPct' },
+      { header: 'Φόρος (€)', key: 'taxAmount' },
       { header: 'Ημερομηνία', key: 'dateFmt' },
       { header: 'Επανάληψη', key: 'recurrence' },
       { header: 'Προμηθευτής', key: 'vendor' },
@@ -85,6 +149,13 @@ export default function CostsPage() {
 
   return (
     <div className="space-y-6">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={onInvoiceFileSelected}
+      />
       <div className="page-header">
         <div>
           <h1 className="page-title">{t('title')}</h1>
@@ -93,6 +164,13 @@ export default function CostsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCategoriesModal(true)}
+            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <Tag className="h-4 w-4" />
+            <span className="hidden sm:block">Κατηγορίες</span>
+          </button>
           <button onClick={handleExportCSV} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
             <Download className="h-4 w-4" />
             <span className="hidden sm:block">CSV</span>
@@ -127,8 +205,8 @@ export default function CostsPage() {
               className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
             >
               <option value="all">Όλες οι κατηγορίες</option>
-              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
           </div>
@@ -148,13 +226,15 @@ export default function CostsPage() {
                       <th className="hidden sm:table-cell">Ημερομηνία</th>
                       <th className="hidden md:table-cell">Επανάληψη</th>
                       <th className="text-right">Ποσό</th>
+                      <th className="w-0">Απόδειξη</th>
+                      <th className="text-right hidden lg:table-cell">Φόρος</th>
                       <th className="text-right">Ενέργειες</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                        <td colSpan={8} className="text-center py-12 text-muted-foreground">
                           <TrendingDown className="h-8 w-8 mx-auto mb-2 opacity-40" />
                           <p>Δεν βρέθηκαν έξοδα</p>
                         </td>
@@ -166,10 +246,10 @@ export default function CostsPage() {
                             <span className="flex items-center gap-1.5">
                               <span
                                 className="h-2 w-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: CATEGORY_COLORS[cost.category] || '#6b7280' }}
+                                style={{ backgroundColor: getCostCategoryColor(cost, categoryMap) }}
                               />
                               <span className="text-xs text-muted-foreground">
-                                {CATEGORY_LABELS[cost.category] || cost.category}
+                                {getCostCategoryLabel(cost)}
                               </span>
                             </span>
                           </td>
@@ -194,6 +274,64 @@ export default function CostsPage() {
                           </td>
                           <td className="text-right font-medium text-red-400">
                             {formatCurrency(cost.amount)}
+                          </td>
+                          <td className="w-0">
+                            <div className="flex items-center justify-center gap-0.5">
+                              {cost.invoiceFile ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => viewInvoice(cost.id)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                    title="Προβολή"
+                                  >
+                                    <FileText className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => triggerInvoiceUpload(cost.id)}
+                                    disabled={uploadingCostId === cost.id}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+                                    title="Αντικατάσταση"
+                                  >
+                                    {uploadingCostId === cost.id ? (
+                                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    ) : (
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => printInvoice(cost.id)}
+                                    className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                                    title="Εκτύπωση"
+                                  >
+                                    <Printer className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => triggerInvoiceUpload(cost.id)}
+                                  disabled={uploadingCostId === cost.id}
+                                  className="rounded p-1.5 text-muted-foreground hover:bg-blue-500/10 hover:text-blue-400 transition-colors disabled:opacity-50"
+                                  title="Ανέβασμα απόδειξης"
+                                >
+                                  {uploadingCostId === cost.id ? (
+                                    <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                  ) : (
+                                    <FileUp className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                          <td className="text-right hidden lg:table-cell text-sm text-muted-foreground">
+                            {cost.taxRate != null ? (
+                              <span title={`${formatCurrency((cost.amount * cost.taxRate) / 100)}`}>
+                                {cost.taxRate}% ({formatCurrency((cost.amount * cost.taxRate) / 100)})
+                              </span>
+                            ) : '—'}
                           </td>
                           <td>
                             <div className="flex items-center justify-end gap-1">
@@ -238,10 +376,7 @@ export default function CostsPage() {
                     dataKey="value"
                   >
                     {pieData.map((entry) => (
-                      <Cell
-                        key={entry.key}
-                        fill={CATEGORY_COLORS[entry.key] || '#6b7280'}
-                      />
+                      <Cell key={entry.key} fill={getPieColor(entry)} />
                     ))}
                   </Pie>
                   <Tooltip
@@ -261,7 +396,7 @@ export default function CostsPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className="h-2.5 w-2.5 rounded-sm flex-shrink-0"
-                        style={{ backgroundColor: CATEGORY_COLORS[entry.key] || '#6b7280' }}
+                        style={{ backgroundColor: getPieColor(entry) }}
                       />
                       <span className="text-muted-foreground">{entry.name}</span>
                     </div>
@@ -281,8 +416,17 @@ export default function CostsPage() {
       {showModal && (
         <CostModal
           cost={selectedCost}
+          categories={categories}
           onClose={() => setShowModal(false)}
           onSave={() => { setShowModal(false); loadCosts(); }}
+          onCategoriesChange={loadCategories}
+        />
+      )}
+
+      {showCategoriesModal && (
+        <CostCategoriesModal
+          onClose={() => setShowCategoriesModal(false)}
+          onCategoriesChange={loadCategories}
         />
       )}
     </div>
