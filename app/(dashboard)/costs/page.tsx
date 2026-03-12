@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Search, Edit2, Trash2, TrendingDown, Download, Tag, FileUp, FileText, RefreshCw, Printer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, TrendingDown, Download, Tag, FileUp, FileText, RefreshCw, Printer, BarChart3, BarChart2Off } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { exportToCSV } from '@/lib/export-csv';
@@ -35,6 +35,7 @@ export default function CostsPage() {
   const [selectedCost, setSelectedCost] = useState<any>(null);
   const [uploadingCostId, setUploadingCostId] = useState<string | null>(null);
   const [chartPeriod, setChartPeriod] = useState<'all' | 'month' | 'year'>('all');
+  const [showChart, setShowChart] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const categoryMap = new Map(categories.map((c) => [c.id, { name: c.name, color: c.color }]));
@@ -86,11 +87,14 @@ export default function CostsPage() {
           })
         : filtered.filter((c) => new Date(c.date).getFullYear() === now.getFullYear());
 
+  const amountWithTax = (c: { amount: number; taxRate?: number | null }) =>
+    c.taxRate != null ? c.amount * (1 + c.taxRate / 100) : c.amount;
+
   const pieByKey = chartFiltered.reduce((acc: Record<string, { amount: number; label: string }>, c) => {
     const key = getCostCategoryKey(c);
     const label = getCostCategoryLabel(c);
     if (!acc[key]) acc[key] = { amount: 0, label };
-    acc[key].amount += c.amount;
+    acc[key].amount += amountWithTax(c);
     return acc;
   }, {});
   const pieData = Object.entries(pieByKey).map(([key, { amount, label }]) => ({ name: label, value: amount, key }));
@@ -199,6 +203,14 @@ export default function CostsPage() {
             <span className="hidden sm:block">CSV</span>
           </button>
           <button
+            onClick={() => setShowChart((v) => !v)}
+            className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            title={showChart ? 'Απόκρυψη γραφήματος' : 'Εμφάνιση γραφήματος'}
+          >
+            {showChart ? <BarChart2Off className="h-4 w-4" /> : <BarChart3 className="h-4 w-4" />}
+            <span className="hidden sm:block">{showChart ? 'Απόκρυψη γραφήματος' : 'Γράφημα'}</span>
+          </button>
+          <button
             onClick={() => { setSelectedCost(null); setShowModal(true); }}
             className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
           >
@@ -207,6 +219,74 @@ export default function CostsPage() {
           </button>
         </div>
       </div>
+
+      {/* Costs by category — between header and search, toggleable (default hidden) */}
+      {showChart && (
+        <div className="rounded-xl border border-border bg-card p-4 max-w-md w-full">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h3 className="text-sm font-semibold text-foreground">{t('byCategoryChart')}</h3>
+            <select
+              value={chartPeriod}
+              onChange={(e) => setChartPeriod(e.target.value as 'all' | 'month' | 'year')}
+              className="rounded-lg border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
+              title="Περίοδος για το γράφημα"
+            >
+              <option value="all">Όλα</option>
+              <option value="month">Αυτό το μήνα</option>
+              <option value="year">Φέτος</option>
+            </select>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">Ποσά ανά κατηγορία</p>
+          {pieData.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={65}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {pieData.map((entry) => (
+                      <Cell key={entry.key} fill={getPieColor(entry)} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val: number) => formatCurrency(val)}
+                    contentStyle={{
+                      backgroundColor: 'hsl(222 47% 14%)',
+                      border: '1px solid hsl(217 32% 22%)',
+                      borderRadius: '8px',
+                      color: 'hsl(213 31% 91%)',
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-1.5 mt-2">
+                {pieData.map((entry) => (
+                  <div key={entry.key} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="h-2 w-2 rounded-sm flex-shrink-0"
+                        style={{ backgroundColor: getPieColor(entry) }}
+                      />
+                      <span className="text-muted-foreground truncate">{entry.name}</span>
+                    </div>
+                    <span className="font-medium text-foreground flex-shrink-0 ml-2">{formatCurrency(entry.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+              Δεν υπάρχουν δεδομένα {chartPeriod !== 'all' && 'για την επιλεγμένη περίοδο'}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Costs list — full width so table doesn't need horizontal scroll */}
       <div className="space-y-4">
@@ -387,72 +467,6 @@ export default function CostsPage() {
             )}
           </div>
         </div>
-
-      {/* Costs by category — smaller card below list, with period filter */}
-      <div className="rounded-xl border border-border bg-card p-4 max-w-md w-full">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-          <h3 className="text-sm font-semibold text-foreground">{t('byCategoryChart')}</h3>
-          <select
-            value={chartPeriod}
-            onChange={(e) => setChartPeriod(e.target.value as 'all' | 'month' | 'year')}
-            className="rounded-lg border border-border bg-muted px-2.5 py-1.5 text-xs text-foreground focus:border-primary focus:outline-none"
-            title="Περίοδος για το γράφημα"
-          >
-            <option value="all">Όλα</option>
-            <option value="month">Αυτό το μήνα</option>
-            <option value="year">Φέτος</option>
-          </select>
-        </div>
-        <p className="text-xs text-muted-foreground mb-2">Ποσά ανά κατηγορία</p>
-        {pieData.length > 0 ? (
-          <>
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={65}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {pieData.map((entry) => (
-                    <Cell key={entry.key} fill={getPieColor(entry)} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(val: number) => formatCurrency(val)}
-                  contentStyle={{
-                    backgroundColor: 'hsl(222 47% 14%)',
-                    border: '1px solid hsl(217 32% 22%)',
-                    borderRadius: '8px',
-                    color: 'hsl(213 31% 91%)',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="space-y-1.5 mt-2">
-              {pieData.map((entry) => (
-                <div key={entry.key} className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className="h-2 w-2 rounded-sm flex-shrink-0"
-                      style={{ backgroundColor: getPieColor(entry) }}
-                    />
-                    <span className="text-muted-foreground truncate">{entry.name}</span>
-                  </div>
-                  <span className="font-medium text-foreground flex-shrink-0 ml-2">{formatCurrency(entry.value)}</span>
-                </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-            Δεν υπάρχουν δεδομένα {chartPeriod !== 'all' && 'για την επιλεγμένη περίοδο'}
-          </div>
-        )}
-      </div>
 
       {showModal && (
         <CostModal
