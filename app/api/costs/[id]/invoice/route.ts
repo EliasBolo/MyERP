@@ -56,20 +56,21 @@ export async function POST(
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer());
+  const arrayBuffer = await file.arrayBuffer();
+  const data = Buffer.from(arrayBuffer);
   const fileName = file.name || 'invoice';
   const mimeType = file.type || 'application/octet-stream';
 
   const MAX_SIZE = 15 * 1024 * 1024; // 15 MB
-  if (bytes.length > MAX_SIZE) {
+  if (data.length > MAX_SIZE) {
     return NextResponse.json({ error: 'File too large (max 15 MB)' }, { status: 400 });
   }
 
   try {
     await db.costInvoiceFile.upsert({
       where: { costId: id },
-      create: { costId: id, fileName, mimeType, data: bytes },
-      update: { fileName, mimeType, data: bytes },
+      create: { costId: id, fileName, mimeType, data },
+      update: { fileName, mimeType, data },
     });
     return NextResponse.json({ success: true });
   } catch (e) {
