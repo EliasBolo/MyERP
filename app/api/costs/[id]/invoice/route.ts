@@ -114,9 +114,8 @@ export async function POST(
       if (needsResize) {
         pipeline.resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, { fit: 'inside', withoutEnlargement: true });
       }
-      data = await pipeline
-        .jpeg({ quality: JPEG_QUALITY })
-        .toBuffer();
+      const out = await pipeline.jpeg({ quality: JPEG_QUALITY }).toBuffer();
+      data = Buffer.from(out);
       mimeType = 'image/jpeg';
       if (!fileName.toLowerCase().endsWith('.jpg') && !fileName.toLowerCase().endsWith('.jpeg')) {
         fileName = fileName.replace(/\.[^.]+$/i, '') + '.jpg';
