@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
         const dateWhere = from && to ? { date: { gte: from, lte: to } } : {};
         const costs = await db.cost.findMany({
           where: { businessId, ...dateWhere },
+          include: { costCategory: { select: { name: true } } },
           orderBy: { date: 'desc' },
         });
         const CATEGORIES: Record<string, string> = {
@@ -115,7 +116,7 @@ export async function GET(req: NextRequest) {
           ],
           rows: costs.map((c) => ({
             date: formatDate(c.date),
-            category: CATEGORIES[c.category] ?? c.category,
+            category: c.costCategory?.name ?? CATEGORIES[c.category ?? 'other'] ?? c.category ?? '—',
             description: c.description,
             vendor: c.vendor ?? '—',
             recurrence: c.recurrence ?? 'once',
