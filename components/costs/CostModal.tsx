@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, TrendingDown, Plus } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
 
 interface CostCategory {
   id: string;
@@ -214,6 +215,19 @@ export default function CostModal({ cost, categories, onClose, onSave, onCategor
                   onChange={(e) => setForm((p) => ({ ...p, taxRate: e.target.value }))}
                   className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground"
                 />
+                {form.taxRate !== '' && (() => {
+                  const amount = parseFloat(String(form.amount));
+                  const rate = parseFloat(String(form.taxRate));
+                  if (!Number.isNaN(amount) && amount >= 0 && !Number.isNaN(rate) && rate >= 0) {
+                    const totalAfterTax = amount * (1 + rate / 100);
+                    return (
+                      <p className="mt-1.5 text-xs text-muted-foreground">
+                        Σύνολο με φόρο: <span className="font-medium text-foreground">{formatCurrency(totalAfterTax)}</span>
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
 
               <div>
