@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
+import sharp from 'sharp';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+
+const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_MIMES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+] as const;
+
+// Magic bytes for server-side type verification (first few bytes)
+const MAGIC: Record<string, (buf: Buffer) => boolean> = {
+  'application/pdf': (b) => b.length >= 4 && b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46, // %PDF
+  'image/jpeg': (b) => b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) => b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47,
+  'image/gif': (b) => b.length >= 6 && (b.slice(0, 6).toString() === 'GIF87a' || b.slice(0, 6).toString() === 'GIF89a'),
+  'image/webp': (b) => b.length >= 12 && b.slice(0, 4).toString() === 'RIFF' && b.slice(8, 12).toString() === 'WEBP',
+};
+
+const MAX_IMAGE_DIMENSION = 1920;
+const JPEG_QUALITY = 85;
 
 async function getCostAndCheckAuth(costId: string) {
   const session = await auth();
@@ -57,13 +79,52 @@ export async function POST(
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  const data = Buffer.from(arrayBuffer);
-  const fileName = file.name || 'invoice';
-  const mimeType = file.type || 'application/octet-stream';
+  let data = Buffer.from(arrayBuffer);
+  let fileName = file.name || 'invoice';
+  let mimeType = (file.type || '').toLowerCase().trim() || 'application/octet-stream';
 
-  const MAX_SIZE = 15 * 1024 * 1024; // 15 MB
-  if (data.length > MAX_SIZE) {
-    return NextResponse.json({ error: 'File too large (max 15 MB)' }, { status: 400 });
+  if (data.length > MAX_SIZE_BYTES) {
+    return NextResponse.json(
+      { error: `Μέγιστο μέγεθος αρχείου: ${MAX_SIZE_BYTES / 1024 / 1024} MB` },
+      { status: 400 }
+    );
+  }
+
+  if (!ALLOWED_MIMES.includes(mimeType as any)) {
+    return NextResponse.json(
+      { error: 'Επιτρεπόμενα: PDF ή εικόνες (JPEG, PNG, GIF, WebP)' },
+      { status: 400 }
+    );
+  }
+
+  const verify = MAGIC[mimeType];
+  if (verify && !verify(data)) {
+    return NextResponse.json({ error: 'Ο τύπος αρχείου δεν ταιριάζει με το περιεχόμενο' }, { status: 400 });
+  }
+
+  const isImage = mimeType.startsWith('image/');
+  if (isImage) {
+    try {
+      const pipeline = sharp(data);
+      const meta = await pipeline.metadata();
+      const w = meta.width ?? 0;
+      const h = meta.height ?? 0;
+      const needsResize = w > MAX_IMAGE_DIMENSION || h > MAX_IMAGE_DIMENSION;
+
+      if (needsResize) {
+        pipeline.resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, { fit: 'inside', withoutEnlargement: true });
+      }
+      data = await pipeline
+        .jpeg({ quality: JPEG_QUALITY })
+        .toBuffer();
+      mimeType = 'image/jpeg';
+      if (!fileName.toLowerCase().endsWith('.jpg') && !fileName.toLowerCase().endsWith('.jpeg')) {
+        fileName = fileName.replace(/\.[^.]+$/i, '') + '.jpg';
+      }
+    } catch (e) {
+      console.error('Image processing failed:', e);
+      return NextResponse.json({ error: 'Αποτυχία επεξεργασίας εικόνας' }, { status: 400 });
+    }
   }
 
   try {
